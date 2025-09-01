@@ -10,6 +10,8 @@ import shop.maeum.domain.diary.domain.Diary
 import shop.maeum.domain.diary.domain.repository.DiaryRepository
 import shop.maeum.global.entity.Status
 import org.slf4j.LoggerFactory
+import shop.maeum.domain.emotion.domain.Emotion
+import shop.maeum.domain.emotion.domain.EmotionType
 
 @Service
 @Transactional(readOnly = true)
@@ -37,7 +39,7 @@ class DiaryService(
 
         log.info("🧠 AI 응답 원문:\n$aiRawResponse")
 
-        val (emotions, feedback) = parseAiResponse(aiRawResponse)
+        val (emotionNames, feedback) = parseAiResponse(aiRawResponse)
 
         val diary = Diary(
             title = writeDiaryReqDto.title,
@@ -46,6 +48,15 @@ class DiaryService(
             feedback = feedback,
             status = Status.ACTIVE
         )
+
+        val emotions = emotionNames.map { name ->
+            Emotion(
+                emotionType = EmotionType.valueOf(name),
+                diary = diary
+            )
+        }
+        diary.emotions.addAll(emotions)
+
         diaryRepository.save(diary)
 
         return WriteDiaryResDto.fromEntity(diary)

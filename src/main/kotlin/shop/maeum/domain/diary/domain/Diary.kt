@@ -4,6 +4,7 @@ import jakarta.persistence.*
 import org.hibernate.annotations.SQLDelete
 import org.hibernate.annotations.Where
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
+import shop.maeum.domain.emotion.domain.Emotion
 import shop.maeum.global.entity.BaseEntity
 import shop.maeum.global.entity.Status
 
@@ -34,6 +35,9 @@ class Diary (
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     var status: Status = Status.ACTIVE,
+
+    @OneToMany(mappedBy = "diary", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val emotions: MutableList<Emotion> = mutableListOf()
 
 //    @Column(name = "member_id", nullable = false)
 //    val memberId: Long
