@@ -48,4 +48,16 @@ class DiaryController(
             data = diaryDetail
         )
     }
+
+    @DeleteMapping("/{diaryId}")
+    fun deleteDiary(
+        @PathVariable diaryId: Long
+    ): RspTemplate<Void> {
+        diaryService.deleteDiary(diaryId)
+        return RspTemplate(
+            httpStatus = HttpStatus.OK,
+            message = "일기가 성공적으로 삭제되었습니다."
+        )
+    }
+
 }

@@ -97,4 +97,13 @@ class DiaryService(
 
         return DiaryDetailResDto.fromEntity(diary)
     }
+
+    @Transactional
+    fun deleteDiary(diaryId: Long) {
+        val diary = diaryRepository.findByIdOrNull(diaryId)
+            ?: throw DiaryNotFoundException()
+
+        diaryRepository.delete(diary)
+    }
+
 }
