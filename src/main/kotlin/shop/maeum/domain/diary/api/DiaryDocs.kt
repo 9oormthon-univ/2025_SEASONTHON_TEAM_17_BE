@@ -36,7 +36,8 @@ interface DiaryDocs {
                             "diaryId": 1,
                             "title": "오늘 하루",
                             "content": "정말 피곤한 하루였다.",
-                            "privacySetting": "PRIVATE"
+                            "privacySetting": "PRIVATE",
+                            "feedback": "오늘 하루는 정말 피곤했겠네요. 충분한 휴식을 취하시고, 내일은 더 좋은 하루가 되길 바랍니다."
                           }
                         }
                         """

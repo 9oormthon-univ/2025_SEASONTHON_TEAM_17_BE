@@ -6,7 +6,8 @@ data class WriteDiaryResDto(
     val id: Long? = null,
     val title: String,
     val content: String,
-    val privacySetting: PrivacySetting
+    val privacySetting: PrivacySetting,
+    val feedback: String
 ) {
     companion object {
         fun fromEntity(diary: Diary): WriteDiaryResDto {
@@ -14,7 +15,8 @@ data class WriteDiaryResDto(
                 id = diary.id,
                 title = diary.title,
                 content = diary.content,
-                privacySetting = diary.privacySetting
+                privacySetting = diary.privacySetting,
+                feedback = diary.feedback
             )
         }
     }
