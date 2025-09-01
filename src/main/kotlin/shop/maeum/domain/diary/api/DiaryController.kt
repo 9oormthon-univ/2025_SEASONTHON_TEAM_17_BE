@@ -11,15 +11,15 @@ import shop.maeum.global.template.RspTemplate
 @RequestMapping("/api/v1/diaries")
 class DiaryController(
     private val diaryService: DiaryService
-) {
+) : DiaryDocs {
 
     @PostMapping
-    fun writeDiary(@RequestBody writeDiaryResDto: WriteDiaryReqDto): RspTemplate<WriteDiaryResDto> {
+    override fun writeDiary(@RequestBody writeDiaryReqDto: WriteDiaryReqDto): RspTemplate<WriteDiaryResDto> {
         return RspTemplate(
             httpStatus = HttpStatus.CREATED,
             message = "일기가 성공적으로 작성되었습니다.",
             data = diaryService.writeDiary(
-                writeDiaryResDto
+                writeDiaryReqDto
             )
         )
     }
