@@ -10,6 +10,10 @@ import shop.maeum.domain.diary.domain.Diary
 import shop.maeum.domain.diary.domain.repository.DiaryRepository
 import shop.maeum.global.entity.Status
 import org.slf4j.LoggerFactory
+import org.springframework.data.repository.findByIdOrNull
+import shop.maeum.domain.diary.api.dto.response.DiaryDetailResDto
+import shop.maeum.domain.diary.api.dto.response.DiarySummaryResDto
+import shop.maeum.domain.diary.exception.DiaryNotFoundException
 import shop.maeum.domain.emotion.domain.Emotion
 import shop.maeum.domain.emotion.domain.EmotionType
 
@@ -82,4 +86,15 @@ class DiaryService(
         return emotions to feedback
     }
 
+//    fun getDiaries(memberId: Long): List<DiarySummaryResDto> {
+//        return diaryRepository.findAllByMemberIdOrderByCreatedAtDesc(memberId)
+//            .map { DiarySummaryResDto.fromEntity(it) }
+//    }
+
+    fun getDiaryDetail(diaryId: Long): DiaryDetailResDto {
+        val diary = diaryRepository.findByIdOrNull(diaryId)
+            ?: throw DiaryNotFoundException()
+
+        return DiaryDetailResDto.fromEntity(diary)
+    }
 }
