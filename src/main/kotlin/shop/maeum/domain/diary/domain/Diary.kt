@@ -1,8 +1,9 @@
+package shop.maeum.domain.diary.domain
+
 import jakarta.persistence.*
 import org.hibernate.annotations.SQLDelete
 import org.hibernate.annotations.Where
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
-import shop.maeum.domain.diary.domain.PrivacySetting
 import shop.maeum.global.entity.BaseEntity
 import shop.maeum.global.entity.Status
 
