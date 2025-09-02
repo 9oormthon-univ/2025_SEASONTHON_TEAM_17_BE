@@ -19,7 +19,7 @@ import shop.maeum.domain.security.filter.JwtAuthenticationTokenFilter
 class SecurityConfig(
     private val jwtAuthenticationTokenFilter: JwtAuthenticationTokenFilter,
     private val corsConfig: CorsConfig,
-    @Value("\${spring.security.allowed-paths}")
+    @Value("\${spring.security.cors.allowed-paths}")
     private val whiteList : Array<String>
 ) {
     @Bean

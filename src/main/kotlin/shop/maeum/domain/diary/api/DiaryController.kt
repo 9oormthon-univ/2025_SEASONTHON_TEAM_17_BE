@@ -1,10 +1,11 @@
 package shop.maeum.domain.diary.api
 
+import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import shop.maeum.domain.diary.api.dto.request.WriteDiaryReqDto
 import shop.maeum.domain.diary.api.dto.response.DiaryDetailResDto
-import shop.maeum.domain.diary.api.dto.response.DiarySummaryResDto
+import shop.maeum.domain.diary.api.dto.response.DiaryListWithPageResDto
 import shop.maeum.domain.diary.api.dto.response.WriteDiaryResDto
 import shop.maeum.domain.diary.application.DiaryService
 import shop.maeum.global.template.RspTemplate
@@ -16,26 +17,31 @@ class DiaryController(
 ) : DiaryDocs {
 
     @PostMapping
-    override fun writeDiary(@RequestBody writeDiaryReqDto: WriteDiaryReqDto): RspTemplate<WriteDiaryResDto> {
+    override fun writeDiary(
+        @RequestBody writeDiaryReqDto: WriteDiaryReqDto
+    ): RspTemplate<WriteDiaryResDto> {
         return RspTemplate(
             httpStatus = HttpStatus.CREATED,
             message = "일기가 성공적으로 작성되었습니다.",
             data = diaryService.writeDiary(
-                writeDiaryReqDto
+                writeDiaryReqDto,
             )
         )
     }
 
-//    @GetMapping
-//    fun getMyDiaries(
-//    ): RspTemplate<List<DiarySummaryResDto>> {
-//        val diaries = diaryService.getDiaries(멤버 보내기)
-//        return RspTemplate(
-//            httpStatus = HttpStatus.OK,
-//            message = "내 일기 리스트 조회 성공",
-//            data = diaries
-//        )
-//    }
+    @GetMapping
+    override fun getDiaries(
+        @RequestParam(name = "page", defaultValue = "0") page: Int,
+        @RequestParam(name = "size", defaultValue = "10") size: Int
+    ): RspTemplate<DiaryListWithPageResDto> {
+        val pageable = PageRequest.of(page, size)
+        val diaries = diaryService.getDiaries(pageable)
+        return RspTemplate(
+            HttpStatus.OK,
+            message = "일기 목록 조회 성공",
+            data = diaries
+        )
+    }
 
     @GetMapping("/{diaryId}")
     override fun getDiaryDetail(
@@ -50,7 +56,7 @@ class DiaryController(
     }
 
     @DeleteMapping("/{diaryId}")
-    fun deleteDiary(
+    override fun deleteDiary(
         @PathVariable diaryId: Long
     ): RspTemplate<Void> {
         diaryService.deleteDiary(diaryId)

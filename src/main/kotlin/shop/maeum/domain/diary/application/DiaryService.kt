@@ -10,18 +10,25 @@ import shop.maeum.domain.diary.domain.Diary
 import shop.maeum.domain.diary.domain.repository.DiaryRepository
 import shop.maeum.global.entity.Status
 import org.slf4j.LoggerFactory
+import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import shop.maeum.domain.diary.api.dto.response.DiaryDetailResDto
+import shop.maeum.domain.diary.api.dto.response.DiaryListWithPageResDto
 import shop.maeum.domain.diary.api.dto.response.DiarySummaryResDto
 import shop.maeum.domain.diary.exception.DiaryNotFoundException
 import shop.maeum.domain.emotion.domain.Emotion
 import shop.maeum.domain.emotion.domain.EmotionType
+import shop.maeum.domain.member.repository.MemberRepository
+import shop.maeum.domain.security.util.SecurityUtil
+import shop.maeum.global.dto.PageInfoResDto
 
 @Service
 @Transactional(readOnly = true)
 class DiaryService(
     private val diaryRepository: DiaryRepository,
     private val aiService: AiService,
+    private val memberRepository: MemberRepository,
+    private val securityUtil: SecurityUtil,
 
     @Value("\${ai.prompt.diary-analysis}")
     private val diaryAnalysisPrompt: String
@@ -30,6 +37,9 @@ class DiaryService(
 
     @Transactional
     fun writeDiary(writeDiaryReqDto: WriteDiaryReqDto): WriteDiaryResDto {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+
         val fullPrompt = """
         $diaryAnalysisPrompt
 
@@ -50,7 +60,8 @@ class DiaryService(
             content = writeDiaryReqDto.content,
             privacySetting = writeDiaryReqDto.privacySetting,
             feedback = feedback,
-            status = Status.ACTIVE
+            status = Status.ACTIVE,
+            member = member
         )
 
         val emotions = emotionNames.map { name ->
@@ -86,10 +97,17 @@ class DiaryService(
         return emotions to feedback
     }
 
-//    fun getDiaries(memberId: Long): List<DiarySummaryResDto> {
-//        return diaryRepository.findAllByMemberIdOrderByCreatedAtDesc(memberId)
-//            .map { DiarySummaryResDto.fromEntity(it) }
-//    }
+    fun getDiaries(pageable: Pageable): DiaryListWithPageResDto {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with email ${securityUtil.getCurrentEmail()} not found")
+
+        val diaryPage = diaryRepository.findAllByMemberIdOrderByCreatedAtDesc(member.id!!, pageable)
+
+        return DiaryListWithPageResDto(
+            diaries = diaryPage.content.map { DiarySummaryResDto.fromEntity(it) },
+            pageInfo = PageInfoResDto.from(diaryPage)
+        )
+    }
 
     fun getDiaryDetail(diaryId: Long): DiaryDetailResDto {
         val diary = diaryRepository.findByIdOrNull(diaryId)

@@ -13,10 +13,13 @@ data class DiaryDetailResDto(
 ) {
     companion object {
         fun fromEntity(diary: Diary): DiaryDetailResDto {
-            val emotionCounts = diary.emotions
-                .groupingBy { it.emotionType }
-                .eachCount()
-                .map { (type, count) -> EmotionCountDto(type, count) }
+            val emotionCounts = diary.emotions.map { emotion ->
+                EmotionCountDto(
+                    emotionId = emotion.id!!,
+                    type = emotion.emotionType,
+                    likeCount = emotion.likes.size
+                )
+            }
 
             return DiaryDetailResDto(
                 diaryId = diary.id!!,
@@ -30,7 +33,8 @@ data class DiaryDetailResDto(
     }
 
     data class EmotionCountDto(
+        val emotionId: Long,
         val type: EmotionType,
-        val count: Int
+        val likeCount: Int
     )
 }
