@@ -13,15 +13,20 @@ class JwtAuthenticationTokenExtractor(
     fun extractJwtAuthenticationToken(token: String): JwtAuthenticationToken {
         val claims: JwtComponent.Claims = jwtComponent.verify(token)
 
-        val id: String = claims.id.replace("\"", "")
-        val authorities: List<GrantedAuthority> = obtainAuthorities(claims)
+        val id = claims.id.replace("\"", "")
+        val email = claims.email.replace("\"", "")
+        val roles = claims.roles.map { it.replace("\"", "") }
+
+        val authorities = roles.map { role -> SimpleGrantedAuthority("ROLE_$role") }
 
         if (authorities.isEmpty()) throw UsernameNotFoundException("Invalid token")
+
         return JwtAuthenticationToken(
-            JwtAuthentication(id, token),
-            authorities,
+            JwtAuthentication(id, email),
+            authorities
         )
     }
+
 
     private fun obtainAuthorities(claims: JwtComponent.Claims): List<GrantedAuthority> {
         val roles: Array<String> = claims.roles

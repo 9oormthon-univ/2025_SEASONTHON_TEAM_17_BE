@@ -8,6 +8,7 @@ import shop.maeum.domain.diary.api.dto.response.DiarySummaryResDto
 import shop.maeum.domain.diary.api.dto.response.WriteDiaryResDto
 import shop.maeum.domain.diary.application.DiaryService
 import shop.maeum.global.template.RspTemplate
+import java.security.Principal
 
 @RestController
 @RequestMapping("/api/v1/diaries")
@@ -16,12 +17,14 @@ class DiaryController(
 ) : DiaryDocs {
 
     @PostMapping
-    override fun writeDiary(@RequestBody writeDiaryReqDto: WriteDiaryReqDto): RspTemplate<WriteDiaryResDto> {
+    override fun writeDiary(
+        @RequestBody writeDiaryReqDto: WriteDiaryReqDto
+    ): RspTemplate<WriteDiaryResDto> {
         return RspTemplate(
             httpStatus = HttpStatus.CREATED,
             message = "일기가 성공적으로 작성되었습니다.",
             data = diaryService.writeDiary(
-                writeDiaryReqDto
+                writeDiaryReqDto,
             )
         )
     }

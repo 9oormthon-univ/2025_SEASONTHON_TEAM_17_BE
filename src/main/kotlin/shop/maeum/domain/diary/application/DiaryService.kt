@@ -16,12 +16,17 @@ import shop.maeum.domain.diary.api.dto.response.DiarySummaryResDto
 import shop.maeum.domain.diary.exception.DiaryNotFoundException
 import shop.maeum.domain.emotion.domain.Emotion
 import shop.maeum.domain.emotion.domain.EmotionType
+import shop.maeum.domain.member.repository.MemberRepository
+import shop.maeum.domain.security.util.SecurityUtil
+import java.security.Principal
 
 @Service
 @Transactional(readOnly = true)
 class DiaryService(
     private val diaryRepository: DiaryRepository,
     private val aiService: AiService,
+    private val memberRepository: MemberRepository,
+    private val securityUtil: SecurityUtil,
 
     @Value("\${ai.prompt.diary-analysis}")
     private val diaryAnalysisPrompt: String
@@ -30,6 +35,9 @@ class DiaryService(
 
     @Transactional
     fun writeDiary(writeDiaryReqDto: WriteDiaryReqDto): WriteDiaryResDto {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+
         val fullPrompt = """
         $diaryAnalysisPrompt
 
@@ -50,7 +58,8 @@ class DiaryService(
             content = writeDiaryReqDto.content,
             privacySetting = writeDiaryReqDto.privacySetting,
             feedback = feedback,
-            status = Status.ACTIVE
+            status = Status.ACTIVE,
+            member = member
         )
 
         val emotions = emotionNames.map { name ->
