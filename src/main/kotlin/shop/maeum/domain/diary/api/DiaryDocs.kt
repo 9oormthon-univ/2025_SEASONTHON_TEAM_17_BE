@@ -7,8 +7,10 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.parameters.RequestBody
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.web.bind.annotation.RequestParam
 import shop.maeum.domain.diary.api.dto.request.WriteDiaryReqDto
 import shop.maeum.domain.diary.api.dto.response.DiaryDetailResDto
+import shop.maeum.domain.diary.api.dto.response.DiaryListWithPageResDto
 import shop.maeum.domain.diary.api.dto.response.WriteDiaryResDto
 import shop.maeum.global.template.RspTemplate
 
@@ -73,7 +75,6 @@ interface DiaryDocs {
         writeDiaryReqDto: WriteDiaryReqDto
     ): RspTemplate<WriteDiaryResDto>
 
-
     @Operation(
         summary = "일기 상세 조회",
         description = "특정 일기의 상세 정보를 조회합니다. (감정 리스트 포함)"
@@ -109,4 +110,51 @@ interface DiaryDocs {
     fun getDiaryDetail(
         diaryId: Long
     ): RspTemplate<DiaryDetailResDto>
+
+    @Operation(
+        summary = "일기 목록 조회 (페이징)",
+        description = "현재 로그인한 사용자의 일기 목록을 페이지 단위로 조회합니다."
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "일기 목록 조회 성공",
+        content = [
+            Content(
+                mediaType = "application/json",
+                schema = Schema(implementation = RspTemplate::class),
+                examples = [
+                    ExampleObject(
+                        name = "일기 목록 조회 예시",
+                        value = """
+                    {
+                      "statusCode": 200,
+                      "message": "일기 목록 조회 성공",
+                      "data": {
+                        "diaries": [
+                          {
+                            "diaryId": 1,
+                            "title": "오늘 하루",
+                            "content": "정말 피곤한 하루였다.",
+                            "feedback": "오늘 하루는 정말 피곤했겠네요.",
+                            "createdAt": "2025-09-02T14:30:00"
+                          }
+                        ],
+                        "pageInfo": {
+                          "currentPage": 0,
+                          "totalPages": 1,
+                          "totalItems": 1
+                        }
+                      }
+                    }
+                    """
+                    )
+                ]
+            )
+        ]
+    )
+    fun getDiaries(
+        @RequestParam(defaultValue = "0", name = "page") page: Int,
+        @RequestParam(defaultValue = "10", name = "size") size: Int
+    ): RspTemplate<DiaryListWithPageResDto>
+
 }
