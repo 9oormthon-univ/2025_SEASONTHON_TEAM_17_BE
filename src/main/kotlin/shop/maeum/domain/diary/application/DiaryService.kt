@@ -109,7 +109,6 @@ class DiaryService(
         )
     }
 
-
     fun getDiaryDetail(diaryId: Long): DiaryDetailResDto {
         val diary = diaryRepository.findByIdOrNull(diaryId)
             ?: throw DiaryNotFoundException()

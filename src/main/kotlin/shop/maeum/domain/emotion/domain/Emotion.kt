@@ -15,10 +15,11 @@ class Emotion(
     @Column(name = "emotion_type", nullable = false)
     val emotionType: EmotionType,
 
-    @Column(name = "emotion_count", nullable = false)
-    var emotionCount: Int = 0,
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "diary_id", nullable = false)
-    val diary: Diary
+    val diary: Diary,
+
+    @OneToMany(mappedBy = "emotion", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val likes: MutableList<EmotionLike> = mutableListOf()
+
 ) : BaseEntity()
