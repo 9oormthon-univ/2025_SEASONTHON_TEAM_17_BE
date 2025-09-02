@@ -56,7 +56,7 @@ class DiaryController(
     }
 
     @DeleteMapping("/{diaryId}")
-    fun deleteDiary(
+    override fun deleteDiary(
         @PathVariable diaryId: Long
     ): RspTemplate<Void> {
         diaryService.deleteDiary(diaryId)
