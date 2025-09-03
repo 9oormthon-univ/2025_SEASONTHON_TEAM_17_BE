@@ -1,13 +1,14 @@
 package shop.maeum.domain.emotion.application
 
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import shop.maeum.domain.diary.repository.EmotionLikeRepository
 import shop.maeum.domain.diary.repository.EmotionRepository
 import shop.maeum.domain.emotion.domain.EmotionLike
-import shop.maeum.domain.emotion.exception.AlreadyLikedEmotionException
 import shop.maeum.domain.emotion.exception.EmotionNotFoundException
+import shop.maeum.domain.fcm.event.emotion.EmotionLikedEvent
 import shop.maeum.domain.member.repository.MemberRepository
 import shop.maeum.domain.security.util.SecurityUtil
 
@@ -17,7 +18,8 @@ class EmotionLikeService(
     private val emotionRepository: EmotionRepository,
     private val memberRepository: MemberRepository,
     private val emotionLikeRepository: EmotionLikeRepository,
-    private val securityUtil: SecurityUtil
+    private val securityUtil: SecurityUtil,
+    private val eventPublisher: ApplicationEventPublisher
 ) {
     @Transactional
     fun toggleEmotionLike(emotionId: Long) {
@@ -39,10 +41,26 @@ class EmotionLikeService(
                 // 다른 감정 선택했으면 → 기존 거 삭제하고 새로운 거 생성
                 emotionLikeRepository.delete(likedEmotion)
                 emotionLikeRepository.save(EmotionLike(emotion = targetEmotion, member = member))
+
+                eventPublisher.publishEvent(
+                    EmotionLikedEvent(
+                        diaryAuthorId = diary.member.id!!,
+                        likerNickname = member.nickname,
+                        emotionType = targetEmotion.emotionType
+                    )
+                )
             }
         } else {
             // 좋아요한 적 없으면 → 그냥 추가
             emotionLikeRepository.save(EmotionLike(emotion = targetEmotion, member = member))
+
+            eventPublisher.publishEvent(
+                EmotionLikedEvent(
+                    diaryAuthorId = diary.member.id!!,
+                    likerNickname = member.nickname,
+                    emotionType = targetEmotion.emotionType
+                )
+            )
         }
     }
 }
