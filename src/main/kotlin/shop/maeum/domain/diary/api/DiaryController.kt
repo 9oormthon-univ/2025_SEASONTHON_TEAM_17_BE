@@ -4,11 +4,9 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import shop.maeum.domain.diary.api.dto.request.WriteDiaryReqDto
-import shop.maeum.domain.diary.api.dto.response.DiaryDetailResDto
-import shop.maeum.domain.diary.api.dto.response.DiaryListWithPageResDto
-import shop.maeum.domain.diary.api.dto.response.DiaryTodayResDto
-import shop.maeum.domain.diary.api.dto.response.WriteDiaryResDto
+import shop.maeum.domain.diary.api.dto.response.*
 import shop.maeum.domain.diary.application.DiaryService
+import shop.maeum.global.dto.CursorPageResDto
 import shop.maeum.global.template.RspTemplate
 
 @RestController
@@ -32,17 +30,17 @@ class DiaryController(
 
     @GetMapping
     override fun getDiaries(
-        @RequestParam(name = "page", defaultValue = "0") page: Int,
-        @RequestParam(name = "size", defaultValue = "10") size: Int
-    ): RspTemplate<DiaryListWithPageResDto> {
-        val pageable = PageRequest.of(page, size)
-        val diaries = diaryService.getDiaries(pageable)
+        @RequestParam(required = false) cursor: Long?,
+        @RequestParam(defaultValue = "3") limit: Int
+    ): RspTemplate<CursorPageResDto<DiarySummaryResDto>> {
+        val diaries = diaryService.getDiaries(cursor, limit)
         return RspTemplate(
-            HttpStatus.OK,
+            httpStatus = HttpStatus.OK,
             message = "일기 목록 조회 성공",
             data = diaries
         )
     }
+
 
     @GetMapping("/{diaryId}")
     override fun getDiaryDetail(

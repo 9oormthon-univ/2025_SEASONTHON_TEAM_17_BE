@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.*
 import shop.maeum.domain.diary.api.dto.request.WriteDiaryReqDto
 import shop.maeum.domain.diary.api.dto.response.*
+import shop.maeum.global.dto.CursorPageResDto
 import shop.maeum.global.template.RspTemplate
 
 @Tag(name = "Diary", description = "일기 관련 API")
@@ -127,8 +128,8 @@ interface DiaryDocs {
     ): RspTemplate<DiaryDetailResDto>
 
     @Operation(
-        summary = "일기 목록 조회",
-        description = "현재 로그인한 사용자의 일기 목록을 페이지 단위로 조회합니다. default는 page=0, size=10 입니다. 조정 가능"
+        summary = "일기 목록 조회 (커서 기반)",
+        description = "현재 로그인한 사용자의 일기를 최신순으로 커서 기반 페이징하여 조회합니다. 기본 limit=3"
     )
     @ApiResponse(
         responseCode = "200",
@@ -153,9 +154,8 @@ interface DiaryDocs {
                       }
                     ],
                     "pageInfo": {
-                      "currentPage": 0,
-                      "totalPages": 1,
-                      "totalItems": 1
+                      "nextCursor": 12,
+                      "hasNext": true
                     }
                   }
                 }
@@ -164,9 +164,11 @@ interface DiaryDocs {
         )]
     )
     fun getDiaries(
-        @RequestParam(defaultValue = "0", name = "page") page: Int,
-        @RequestParam(defaultValue = "10", name = "size") size: Int
-    ): RspTemplate<DiaryListWithPageResDto>
+        @Parameter(description = "마지막으로 조회한 일기의 ID (없으면 첫 페이지)")
+        @RequestParam(required = false) cursor: Long?,
+        @Parameter(description = "가져올 일기의 개수 (기본값 3)")
+        @RequestParam(defaultValue = "3") limit: Int
+    ): RspTemplate<CursorPageResDto<DiarySummaryResDto>>
 
     @Operation(
         summary = "일기 삭제",

@@ -3,6 +3,8 @@ package shop.maeum.domain.diary.domain.repository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import shop.maeum.domain.diary.domain.Diary
 import java.time.LocalDateTime
 
@@ -19,8 +21,17 @@ interface DiaryRepository : JpaRepository<Diary, Long> {
         memberId: String, createdAt: LocalDateTime, createdAt2: LocalDateTime
     ): Diary?
 
-    fun existsByMemberIdAndCreatedAtBetween(
-        memberId: String, createdAt: LocalDateTime, createdAt2: LocalDateTime
-    ): Boolean
+    @Query("""
+    SELECT d
+    FROM Diary d
+    WHERE d.member.id = :memberId
+      AND (:cursor IS NULL OR d.id < :cursor)
+    ORDER BY d.id DESC
+""")
+    fun findAllByMemberWithCursor(
+        @Param("memberId") memberId: String,
+        @Param("cursor") cursor: Long?,
+        pageable: Pageable
+    ): List<Diary>
 
 }
