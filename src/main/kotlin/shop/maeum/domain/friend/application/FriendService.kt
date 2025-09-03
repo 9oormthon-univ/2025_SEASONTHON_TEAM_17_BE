@@ -9,6 +9,7 @@ import shop.maeum.domain.friend.domain.FriendStatus
 import shop.maeum.domain.friend.domain.repository.FriendRepository
 import shop.maeum.domain.member.repository.MemberRepository
 import shop.maeum.domain.security.util.SecurityUtil
+import shop.maeum.global.dto.CursorPageResDto
 
 @Service
 @Transactional(readOnly = true)
@@ -85,7 +86,6 @@ class FriendService(
         friendRepository.delete(request)
     }
 
-
     fun getReceivedFriendRequests(): List<FriendSimpleResDto> {
         val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
             ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
@@ -102,18 +102,27 @@ class FriendService(
         return list.map { FriendSimpleResDto.of(it.toMember) }
     }
 
-    fun getFriends(): List<FriendSimpleResDto> {
+    fun getFriends(cursor: String?, limit: Int = 5): CursorPageResDto<FriendSimpleResDto> {
         val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
             ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
-        val friendEntities = friendRepository.findAllAcceptedFriends(member)
+
+        val friendEntities = friendRepository.findAllAcceptedFriendsWithCursor(member.id!!, cursor, limit + 1)
 
         val friends = friendEntities.map {
             if (it.fromMember == member) it.toMember else it.fromMember
-        }.distinctBy { it.id }
+        }
 
-        return friends.map { FriendSimpleResDto.of(it) }
+        val distinctFriends = friends.distinctBy { it.id }.map { FriendSimpleResDto.of(it) }
+        val hasNext = distinctFriends.size > limit
+        val sliced = distinctFriends.take(limit)
+        val nextCursor = if (hasNext) sliced.last().memberId else null
+
+        return CursorPageResDto(
+            data = sliced,
+            nextCursor = nextCursor,
+            hasNext = hasNext
+        )
     }
-
 
 //    @Transactional
 //    fun searchFriend(

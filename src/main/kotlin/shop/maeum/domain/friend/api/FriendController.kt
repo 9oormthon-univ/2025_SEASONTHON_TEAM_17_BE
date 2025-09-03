@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.*
 import shop.maeum.domain.friend.api.dto.request.FriendEmailReqDto
 import shop.maeum.domain.friend.api.dto.response.FriendSimpleResDto
 import shop.maeum.domain.friend.application.FriendService
+import shop.maeum.global.dto.CursorPageResDto
 import shop.maeum.global.template.RspTemplate
 
 @RestController
@@ -74,8 +75,11 @@ class FriendController(
     }
 
     @GetMapping
-    fun getMyFriends(): RspTemplate<List<FriendSimpleResDto>> {
-        val result = friendService.getFriends()
+    fun getMyFriends(
+        @RequestParam(required = false) cursor: String?,
+        @RequestParam(defaultValue = "5") limit: Int
+    ): RspTemplate<CursorPageResDto<FriendSimpleResDto>> {
+        val result = friendService.getFriends(cursor, limit)
         return RspTemplate(
             httpStatus = HttpStatus.OK,
             message = "친구 목록 조회 성공",
