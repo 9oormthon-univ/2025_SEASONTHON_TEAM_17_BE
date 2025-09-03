@@ -31,22 +31,54 @@ class FriendService(
     @Transactional
     fun requestFriend(toMemberEmail: String) {
         val fromMember = memberRepository.findByEmail(securityUtil.getCurrentEmail())
-            ?: throw IllegalArgumentException("fromMember not found")
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
         val toMember = memberRepository.findByEmail(toMemberEmail)
-            ?: throw IllegalArgumentException("toMember not found")
+            ?: throw IllegalArgumentException("Member with id $toMemberEmail not found")
 
         if (fromMember.id == toMember.id)
             throw FriendRequestInvalidException("자기 자신에게는 친구 요청할 수 없습니다.")
 
         val existing = friendRepository.findByFromMemberAndToMember(fromMember, toMember)
-        if (existing != null)
-            throw FriendAlreadyExistsException("이미 친구 요청을 보냈습니다.")
+        if (existing != null) {
+            when (existing.friendStatus) {
+                FriendStatus.REQUESTED -> throw FriendAlreadyExistsException("이미 요청을 보냈습니다.")
+                FriendStatus.ACCEPTED -> throw FriendAlreadyExistsException("이미 친구입니다.")
+                FriendStatus.REJECTED -> {
+                    existing.friendStatus = FriendStatus.REQUESTED
 
-        val request = Friend(
-            fromMember = fromMember,
-            toMember = toMember,
-            friendStatus = FriendStatus.REQUESTED
-        )
+                    eventPublisher.publishEvent(
+                        FriendRequestedEvent(
+                            fromMemberId = fromMember.id!!,
+                            fromMemberNickname = fromMember.nickname,
+                            toMemberId = toMember.id!!
+                        )
+                    )
+                    return
+                }
+            }
+        }
+
+        val reverseExisting = friendRepository.findByFromMemberAndToMember(toMember, fromMember)
+        if (reverseExisting != null) {
+            when (reverseExisting.friendStatus) {
+                FriendStatus.REQUESTED -> throw FriendAlreadyExistsException("상대방이 이미 요청을 보냈습니다.")
+                FriendStatus.ACCEPTED -> throw FriendAlreadyExistsException("이미 친구입니다.")
+                FriendStatus.REJECTED -> {
+                    reverseExisting.friendStatus = FriendStatus.REQUESTED
+
+                    eventPublisher.publishEvent(
+                        FriendRequestedEvent(
+                            fromMemberId = fromMember.id!!,
+                            fromMemberNickname = fromMember.nickname,
+                            toMemberId = toMember.id!!
+                        )
+                    )
+                    return
+                }
+            }
+        }
+
+        val request = Friend(fromMember = fromMember, toMember = toMember, friendStatus = FriendStatus.REQUESTED)
         friendRepository.save(request)
 
         eventPublisher.publishEvent(
@@ -60,28 +92,28 @@ class FriendService(
 
     @Transactional
     fun acceptFriend(requestMemberEmail: String) {
-        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
-            ?: throw IllegalArgumentException("Member not found")
-        val requestMember = memberRepository.findByEmail(requestMemberEmail)
-            ?: throw IllegalArgumentException("Member not found")
+        val me = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+        val requester = memberRepository.findByEmail(requestMemberEmail)
+            ?: throw IllegalArgumentException("Member with id $requestMemberEmail not found")
 
-        val request = friendRepository.findByFromMemberAndToMember(requestMember, member)
+        val request = friendRepository.findByFromMemberAndToMember(requester, me)
             ?: throw FriendNotFoundException("친구 요청이 존재하지 않습니다.")
 
-        if (request.friendStatus != FriendStatus.REQUESTED)
+        if (request.friendStatus != FriendStatus.REQUESTED) {
             throw FriendAccessDeniedException("친구 요청중인 상태가 아닙니다.")
+        }
 
         request.friendStatus = FriendStatus.ACCEPTED
 
         eventPublisher.publishEvent(
             FriendAcceptedEvent(
-                fromMemberId = requestMember.id!!,
-                toMemberId = member.id!!,
-                toMemberNickname = member.nickname
+                fromMemberId = requester.id!!,
+                toMemberId = me.id!!,
+                toMemberNickname = me.nickname
             )
         )
     }
-
 
     @Transactional
     fun rejectFriend(requestMemberEmail: String) {
@@ -93,7 +125,17 @@ class FriendService(
         val request = friendRepository.findByFromMemberAndToMember(requestMember, member)
             ?: throw FriendNotFoundException("친구 요청이 존재하지 않습니다.")
 
-        request.friendStatus = FriendStatus.REJECTED
+        when (request.friendStatus) {
+            FriendStatus.REQUESTED -> {
+                request.friendStatus = FriendStatus.REJECTED
+            }
+            FriendStatus.REJECTED -> {
+                throw FriendAccessDeniedException("이미 거절한 요청입니다.")
+            }
+            FriendStatus.ACCEPTED -> {
+                throw FriendAccessDeniedException("이미 수락한 요청은 거절할 수 없습니다.")
+            }
+        }
     }
 
     @Transactional
@@ -106,11 +148,17 @@ class FriendService(
         val request = friendRepository.findByFromMemberAndToMember(fromMember, toMember)
             ?: throw FriendNotFoundException("친구 요청이 존재하지 않습니다.")
 
-        if (request.friendStatus != FriendStatus.REQUESTED) {
-            throw FriendAccessDeniedException("요청 상태가 아니므로 취소할 수 없습니다.")
+        when (request.friendStatus) {
+            FriendStatus.REQUESTED -> {
+                friendRepository.delete(request)
+            }
+            FriendStatus.REJECTED -> {
+                throw FriendAccessDeniedException("이미 취소된 요청입니다.")
+            }
+            FriendStatus.ACCEPTED -> {
+                throw FriendAccessDeniedException("이미 수락된 요청은 취소할 수 없습니다.")
+            }
         }
-
-        friendRepository.delete(request)
     }
 
     fun getFriends(cursor: Long?, limit: Int = 5): CursorPageResDto<FriendSimpleResDto, Long> {
