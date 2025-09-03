@@ -1,8 +1,11 @@
 package shop.maeum.domain.friend.application
 
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import shop.maeum.domain.fcm.event.friend.FriendAcceptedEvent
+import shop.maeum.domain.fcm.event.friend.FriendRequestedEvent
 import shop.maeum.domain.friend.api.dto.response.FriendSearchResDto
 import shop.maeum.domain.friend.api.dto.response.FriendSimpleResDto
 import shop.maeum.domain.friend.domain.Friend
@@ -21,21 +24,23 @@ import shop.maeum.global.dto.CursorPageResDto
 class FriendService(
     private val friendRepository: FriendRepository,
     private val memberRepository: MemberRepository,
-    private val securityUtil: SecurityUtil
+    private val securityUtil: SecurityUtil,
+    private val eventPublisher: ApplicationEventPublisher
 ) {
 
     @Transactional
     fun requestFriend(toMemberEmail: String) {
         val fromMember = memberRepository.findByEmail(securityUtil.getCurrentEmail())
-            ?: throw IllegalArgumentException("fromMember with id ${securityUtil.getCurrentEmail()} not found")
+            ?: throw IllegalArgumentException("fromMember not found")
         val toMember = memberRepository.findByEmail(toMemberEmail)
-            ?: throw IllegalArgumentException("toMember with id $toMemberEmail not found")
+            ?: throw IllegalArgumentException("toMember not found")
 
-        if (fromMember.id == toMember.id) throw FriendRequestInvalidException("자기 자신에게는 친구 요청할 수 없습니다.")
-
+        if (fromMember.id == toMember.id)
+            throw FriendRequestInvalidException("자기 자신에게는 친구 요청할 수 없습니다.")
 
         val existing = friendRepository.findByFromMemberAndToMember(fromMember, toMember)
-        if (existing != null) throw FriendAlreadyExistsException("이미 친구 요청을 보냈습니다.")
+        if (existing != null)
+            throw FriendAlreadyExistsException("이미 친구 요청을 보냈습니다.")
 
         val request = Friend(
             fromMember = fromMember,
@@ -43,14 +48,22 @@ class FriendService(
             friendStatus = FriendStatus.REQUESTED
         )
         friendRepository.save(request)
+
+        eventPublisher.publishEvent(
+            FriendRequestedEvent(
+                fromMemberId = fromMember.id!!,
+                fromMemberNickname = fromMember.nickname,
+                toMemberId = toMember.id!!
+            )
+        )
     }
 
     @Transactional
     fun acceptFriend(requestMemberEmail: String) {
         val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
-            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+            ?: throw IllegalArgumentException("Member not found")
         val requestMember = memberRepository.findByEmail(requestMemberEmail)
-            ?: throw IllegalArgumentException("Member with id $requestMemberEmail not found")
+            ?: throw IllegalArgumentException("Member not found")
 
         val request = friendRepository.findByFromMemberAndToMember(requestMember, member)
             ?: throw FriendNotFoundException("친구 요청이 존재하지 않습니다.")
@@ -59,7 +72,16 @@ class FriendService(
             throw FriendAccessDeniedException("친구 요청중인 상태가 아닙니다.")
 
         request.friendStatus = FriendStatus.ACCEPTED
+
+        eventPublisher.publishEvent(
+            FriendAcceptedEvent(
+                fromMemberId = requestMember.id!!,
+                toMemberId = member.id!!,
+                toMemberNickname = member.nickname
+            )
+        )
     }
+
 
     @Transactional
     fun rejectFriend(requestMemberEmail: String) {
