@@ -1,9 +1,9 @@
 package shop.maeum.domain.friend.application
 
-import jakarta.validation.constraints.Email
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import shop.maeum.domain.friend.api.dto.response.FriendSearchResDto
 import shop.maeum.domain.friend.api.dto.response.FriendSimpleResDto
 import shop.maeum.domain.friend.domain.Friend
 import shop.maeum.domain.friend.domain.FriendStatus
@@ -91,7 +91,7 @@ class FriendService(
         friendRepository.delete(request)
     }
 
-    fun getFriends(cursor: Long?, limit: Int = 5): CursorPageResDto<FriendSimpleResDto> {
+    fun getFriends(cursor: Long?, limit: Int = 5): CursorPageResDto<FriendSimpleResDto, Long> {
         val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
             ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
 
@@ -116,7 +116,7 @@ class FriendService(
         )
     }
 
-    fun getReceivedFriendRequests(cursor: Long?, limit: Int = 5): CursorPageResDto<FriendSimpleResDto> {
+    fun getReceivedFriendRequests(cursor: Long?, limit: Int = 5): CursorPageResDto<FriendSimpleResDto, Long> {
         val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
             ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
 
@@ -138,7 +138,7 @@ class FriendService(
         )
     }
 
-    fun getSentFriendRequests(cursor: Long?, limit: Int = 5): CursorPageResDto<FriendSimpleResDto> {
+    fun getSentFriendRequests(cursor: Long?, limit: Int = 5): CursorPageResDto<FriendSimpleResDto, Long> {
         val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
             ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
 
@@ -160,39 +160,44 @@ class FriendService(
         )
     }
 
-//    @Transactional
-//    fun searchFriend(
-//        memberId: String,
-//        email: String?,
-//        nickname: String?
-//    ): List<FriendSearchResDto> {
-//        val me = getMemberOrThrow(memberId)
-//
-//        val candidates = memberRepository.searchByEmailOrNickname(email, nickname)
-//            .filter { it.id != memberId }
-//
-//        return candidates.map {
-//            val sent = friendRepository.findByFromMemberAndToMember(me, it)
-//            val received = friendRepository.findByFromMemberAndToMember(it, me)
-//
-//            FriendSearchResDto(
-//                memberId = it.id,
-//                email = it.email,
-//                nickname = it.nickname,
-//                profileImageUrl = it.profileImageUrl,
-//                isFriend = (sent?.status == FriendStatus.ACCEPTED || received?.status == FriendStatus.ACCEPTED),
-//                isRequested = sent?.status == FriendStatus.REQUESTED
-//            )
-//        }
-//    }
-//
-//    private fun getMemberOrThrow(id: String): Member =
-//        memberRepository.findById(id).orElseThrow { NoSuchElementException("회원을 찾을 수 없습니다.") }
-//
-//    private fun Member.toSimpleDto(): FriendSimpleResDto = FriendSimpleResDto(
-//        memberId = this.id!!,
-//        nickname = this.nickname,
-//        email = this.email,
-//        profileImageUrl = this.profilePath!!
-//    )
+    @Transactional
+    fun searchFriendWithCursor(
+        keyword: String,
+        cursor: Long?,
+        limit: Int = 5
+    ): CursorPageResDto<FriendSearchResDto, String> {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with email ${securityUtil.getCurrentEmail()} not found")
+
+        val candidates = memberRepository.searchByKeywordWithCursor(
+            keyword = keyword,
+            cursor = cursor,
+            limit = limit + 1
+        ).filter { it.id != member.id }
+
+        val sliced = candidates.take(limit)
+        val hasNext = candidates.size > limit
+        val nextCursor = if (hasNext) sliced.last().id else null
+
+        val results = sliced.map {
+            val sent = friendRepository.findByFromMemberAndToMember(member, it)
+            val received = friendRepository.findByFromMemberAndToMember(it, member)
+
+            FriendSearchResDto(
+                memberId = it.id!!,
+                email = it.email,
+                nickname = it.nickname,
+                profileImageUrl = it.profilePath ?: "",
+                isFriend = (sent?.friendStatus == FriendStatus.ACCEPTED || received?.friendStatus == FriendStatus.ACCEPTED),
+                isRequested = sent?.friendStatus == FriendStatus.REQUESTED
+            )
+        }
+
+        return CursorPageResDto(
+            data = results,
+            nextCursor = nextCursor,
+            hasNext = hasNext
+        )
+    }
+
 }

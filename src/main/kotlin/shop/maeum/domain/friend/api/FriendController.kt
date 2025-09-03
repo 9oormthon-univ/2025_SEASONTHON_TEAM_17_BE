@@ -3,6 +3,7 @@ package shop.maeum.domain.friend.api
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import shop.maeum.domain.friend.api.dto.request.FriendEmailReqDto
+import shop.maeum.domain.friend.api.dto.response.FriendSearchResDto
 import shop.maeum.domain.friend.api.dto.response.FriendSimpleResDto
 import shop.maeum.domain.friend.application.FriendService
 import shop.maeum.global.dto.CursorPageResDto
@@ -12,10 +13,10 @@ import shop.maeum.global.template.RspTemplate
 @RequestMapping("/api/v1/friends")
 class FriendController(
     private val friendService: FriendService
-) {
+) : FriendDocs {
 
     @PostMapping("/request")
-    fun requestFriend(@RequestBody request: FriendEmailReqDto): RspTemplate<Nothing?> {
+    override fun requestFriend(@RequestBody request: FriendEmailReqDto): RspTemplate<Nothing?> {
         friendService.requestFriend(request.email)
         return RspTemplate(
             httpStatus = HttpStatus.CREATED,
@@ -25,7 +26,7 @@ class FriendController(
     }
 
     @PostMapping("/accept")
-    fun acceptFriend(@RequestBody request: FriendEmailReqDto): RspTemplate<Nothing?> {
+    override fun acceptFriend(@RequestBody request: FriendEmailReqDto): RspTemplate<Nothing?> {
         friendService.acceptFriend(request.email)
         return RspTemplate(
             httpStatus = HttpStatus.OK,
@@ -35,7 +36,7 @@ class FriendController(
     }
 
     @PostMapping("/reject")
-    fun rejectFriend(@RequestBody request: FriendEmailReqDto): RspTemplate<Nothing?> {
+    override fun rejectFriend(@RequestBody request: FriendEmailReqDto): RspTemplate<Nothing?> {
         friendService.rejectFriend(request.email)
         return RspTemplate(
             httpStatus = HttpStatus.OK,
@@ -45,7 +46,7 @@ class FriendController(
     }
 
     @DeleteMapping("/cancel")
-    fun cancelFriendRequest(@RequestParam toEmail: String): RspTemplate<Nothing?> {
+    override fun cancelFriendRequest(@RequestParam toEmail: String): RspTemplate<Nothing?> {
         friendService.cancelFriendRequest(toEmail)
         return RspTemplate(
             httpStatus = HttpStatus.OK,
@@ -55,10 +56,10 @@ class FriendController(
     }
 
     @GetMapping("/received")
-    fun getReceivedFriendRequests(
+    override fun getReceivedFriendRequests(
         @RequestParam(required = false) cursor: Long?,
         @RequestParam(defaultValue = "5") limit: Int
-    ): RspTemplate<CursorPageResDto<FriendSimpleResDto>> {
+    ): RspTemplate<CursorPageResDto<FriendSimpleResDto, Long>> {
         val result = friendService.getReceivedFriendRequests(cursor, limit)
         return RspTemplate(
             httpStatus = HttpStatus.OK,
@@ -68,10 +69,10 @@ class FriendController(
     }
 
     @GetMapping("/sent")
-    fun getSentFriendRequests(
+    override fun getSentFriendRequests(
         @RequestParam(required = false) cursor: Long?,
         @RequestParam(defaultValue = "5") limit: Int
-    ): RspTemplate<CursorPageResDto<FriendSimpleResDto>> {
+    ): RspTemplate<CursorPageResDto<FriendSimpleResDto, Long>> {
         val result = friendService.getSentFriendRequests(cursor, limit)
         return RspTemplate(
             httpStatus = HttpStatus.OK,
@@ -81,10 +82,10 @@ class FriendController(
     }
 
     @GetMapping
-    fun getMyFriends(
+    override fun getMyFriends(
         @RequestParam(required = false) cursor: Long?,
         @RequestParam(defaultValue = "5") limit: Int
-    ): RspTemplate<CursorPageResDto<FriendSimpleResDto>> {
+    ): RspTemplate<CursorPageResDto<FriendSimpleResDto, Long>> {
         val result = friendService.getFriends(cursor, limit)
         return RspTemplate(
             httpStatus = HttpStatus.OK,
@@ -93,16 +94,12 @@ class FriendController(
         )
     }
 
-//    @GetMapping("/search")
-//    fun searchFriend(
-//        @RequestParam(required = false) email: String?,
-//        @RequestParam(required = false) nickname: String?
-//    ): RspTemplate<List<FriendSearchResDto>> {
-//        val result = friendService.searchFriend(email, nickname)
-//        return RspTemplate(
-//            httpStatus = HttpStatus.OK,
-//            message = "친구 검색 성공",
-//            data = result
-//        )
-//    }
+    @GetMapping("/search")
+    override fun searchFriends(
+        @RequestParam keyword: String,
+        @RequestParam(required = false) cursor: Long?,
+        @RequestParam(defaultValue = "5") limit: Int
+    ): CursorPageResDto<FriendSearchResDto, String> {
+        return friendService.searchFriendWithCursor(keyword, cursor, limit)
+    }
 }

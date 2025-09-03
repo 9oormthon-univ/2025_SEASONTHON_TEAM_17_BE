@@ -168,7 +168,7 @@ interface DiaryDocs {
         @RequestParam(required = false) cursor: Long?,
         @Parameter(description = "가져올 일기의 개수 (기본값 3)")
         @RequestParam(defaultValue = "3") limit: Int
-    ): RspTemplate<CursorPageResDto<DiarySummaryResDto>>
+    ): RspTemplate<CursorPageResDto<DiarySummaryResDto, Long>>
 
     @Operation(
         summary = "일기 삭제",

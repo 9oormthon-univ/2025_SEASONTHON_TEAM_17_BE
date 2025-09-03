@@ -99,7 +99,7 @@ class DiaryService(
         return emotions to feedback
     }
 
-    fun getDiaries(cursor: Long?, limit: Int = 3): CursorPageResDto<DiarySummaryResDto> {
+    fun getDiaries(cursor: Long?, limit: Int = 3): CursorPageResDto<DiarySummaryResDto, Long> {
         val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
             ?: throw IllegalArgumentException("Member with email ${securityUtil.getCurrentEmail()} not found")
 

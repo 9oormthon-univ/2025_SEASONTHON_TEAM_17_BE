@@ -9,8 +9,6 @@ import shop.maeum.domain.member.entity.Member
 
 interface FriendRepository : JpaRepository<Friend, Long> {
     fun findByFromMemberAndToMember(from: Member, to: Member): Friend?
-    fun findAllByFromMemberAndFriendStatus(from: Member, status: FriendStatus): List<Friend>
-    fun findAllByToMemberAndFriendStatus(to: Member, status: FriendStatus): List<Friend>
 
     @Query("""
     SELECT f

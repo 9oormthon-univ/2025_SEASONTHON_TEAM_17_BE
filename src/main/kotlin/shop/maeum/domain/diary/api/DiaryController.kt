@@ -32,15 +32,10 @@ class DiaryController(
     override fun getDiaries(
         @RequestParam(required = false) cursor: Long?,
         @RequestParam(defaultValue = "3") limit: Int
-    ): RspTemplate<CursorPageResDto<DiarySummaryResDto>> {
+    ): RspTemplate<CursorPageResDto<DiarySummaryResDto, Long>> {
         val diaries = diaryService.getDiaries(cursor, limit)
-        return RspTemplate(
-            httpStatus = HttpStatus.OK,
-            message = "일기 목록 조회 성공",
-            data = diaries
-        )
+        return RspTemplate(HttpStatus.OK, "일기 목록 조회 성공", diaries)
     }
-
 
     @GetMapping("/{diaryId}")
     override fun getDiaryDetail(
