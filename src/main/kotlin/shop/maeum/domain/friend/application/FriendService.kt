@@ -1,0 +1,153 @@
+package shop.maeum.domain.friend.application
+
+import jakarta.validation.constraints.Email
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import shop.maeum.domain.friend.api.dto.response.FriendSimpleResDto
+import shop.maeum.domain.friend.domain.Friend
+import shop.maeum.domain.friend.domain.FriendStatus
+import shop.maeum.domain.friend.domain.repository.FriendRepository
+import shop.maeum.domain.member.repository.MemberRepository
+import shop.maeum.domain.security.util.SecurityUtil
+
+@Service
+@Transactional(readOnly = true)
+class FriendService(
+    private val friendRepository: FriendRepository,
+    private val memberRepository: MemberRepository,
+    private val securityUtil: SecurityUtil
+) {
+
+    @Transactional
+    fun requestFriend(toMemberEmail: String) {
+        val fromMember = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("fromMember with id ${securityUtil.getCurrentEmail()} not found")
+        val toMember = memberRepository.findByEmail(toMemberEmail)
+            ?: throw IllegalArgumentException("toMember with id $toMemberEmail not found")
+
+        if (fromMember.id == toMember.id) throw IllegalArgumentException("자기 자신에게는 친구 요청할 수 없습니다.")
+
+
+        val existing = friendRepository.findByFromMemberAndToMember(fromMember, toMember)
+        if (existing != null) throw IllegalStateException("이미 친구 요청을 보냈습니다.")
+
+        val request = Friend(
+            fromMember = fromMember,
+            toMember = toMember,
+            friendStatus = FriendStatus.REQUESTED
+        )
+        friendRepository.save(request)
+    }
+
+    @Transactional
+    fun acceptFriend(requestMemberEmail: String) {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+        val requestMember = memberRepository.findByEmail(requestMemberEmail)
+            ?: throw IllegalArgumentException("Member with id $requestMemberEmail not found")
+
+        val request = friendRepository.findByFromMemberAndToMember(requestMember, member)
+            ?: throw IllegalArgumentException("친구 요청이 존재하지 않습니다.")
+
+        if (request.friendStatus != FriendStatus.REQUESTED)
+            throw IllegalStateException("수락할 수 없는 상태입니다.")
+
+        request.friendStatus = FriendStatus.ACCEPTED
+    }
+
+    @Transactional
+    fun rejectFriend(requestMemberEmail: String) {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+        val requestMember = memberRepository.findByEmail(requestMemberEmail)
+            ?: throw IllegalArgumentException("Member with id $requestMemberEmail not found")
+
+        val request = friendRepository.findByFromMemberAndToMember(requestMember, member)
+            ?: throw IllegalArgumentException("친구 요청이 존재하지 않습니다.")
+
+        request.friendStatus = FriendStatus.REJECTED
+    }
+
+    @Transactional
+    fun cancelFriendRequest(toMemberEmail: String) {
+        val fromMember = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+        val toMember = memberRepository.findByEmail(toMemberEmail)
+            ?: throw IllegalArgumentException("Member with id $toMemberEmail not found")
+
+        val request = friendRepository.findByFromMemberAndToMember(fromMember, toMember)
+            ?: throw IllegalArgumentException("친구 요청이 존재하지 않습니다.")
+
+        if (request.friendStatus != FriendStatus.REQUESTED) {
+            throw IllegalStateException("요청 상태가 아니므로 취소할 수 없습니다.")
+        }
+
+        friendRepository.delete(request)
+    }
+
+
+    fun getReceivedFriendRequests(): List<FriendSimpleResDto> {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+        val list = friendRepository.findAllByToMemberAndFriendStatus(member, FriendStatus.REQUESTED)
+
+        return list.map { FriendSimpleResDto.of(it.fromMember) }
+    }
+
+    fun getSentFriendRequests(): List<FriendSimpleResDto> {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+        val list = friendRepository.findAllByFromMemberAndFriendStatus(member, FriendStatus.REQUESTED)
+
+        return list.map { FriendSimpleResDto.of(it.toMember) }
+    }
+
+    fun getFriends(): List<FriendSimpleResDto> {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+        val friendEntities = friendRepository.findAllAcceptedFriends(member)
+
+        val friends = friendEntities.map {
+            if (it.fromMember == member) it.toMember else it.fromMember
+        }.distinctBy { it.id }
+
+        return friends.map { FriendSimpleResDto.of(it) }
+    }
+
+
+//    @Transactional
+//    fun searchFriend(
+//        memberId: String,
+//        email: String?,
+//        nickname: String?
+//    ): List<FriendSearchResDto> {
+//        val me = getMemberOrThrow(memberId)
+//
+//        val candidates = memberRepository.searchByEmailOrNickname(email, nickname)
+//            .filter { it.id != memberId }
+//
+//        return candidates.map {
+//            val sent = friendRepository.findByFromMemberAndToMember(me, it)
+//            val received = friendRepository.findByFromMemberAndToMember(it, me)
+//
+//            FriendSearchResDto(
+//                memberId = it.id,
+//                email = it.email,
+//                nickname = it.nickname,
+//                profileImageUrl = it.profileImageUrl,
+//                isFriend = (sent?.status == FriendStatus.ACCEPTED || received?.status == FriendStatus.ACCEPTED),
+//                isRequested = sent?.status == FriendStatus.REQUESTED
+//            )
+//        }
+//    }
+//
+//    private fun getMemberOrThrow(id: String): Member =
+//        memberRepository.findById(id).orElseThrow { NoSuchElementException("회원을 찾을 수 없습니다.") }
+//
+//    private fun Member.toSimpleDto(): FriendSimpleResDto = FriendSimpleResDto(
+//        memberId = this.id!!,
+//        nickname = this.nickname,
+//        email = this.email,
+//        profileImageUrl = this.profilePath!!
+//    )
+}

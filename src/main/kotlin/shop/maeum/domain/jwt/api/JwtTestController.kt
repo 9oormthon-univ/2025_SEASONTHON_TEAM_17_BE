@@ -19,7 +19,7 @@ class JwtTestController(
     fun getToken(): TokenPair {
         return jwtComponent.createTokenPair(
             id = "5d9c2e63-5b4d-45a4-b1cb-7f4381f6a7ef",
-            email = "test@example.com",
+            email = "test1@example.com",
             role = MemberRole.Member.value
         )
     }

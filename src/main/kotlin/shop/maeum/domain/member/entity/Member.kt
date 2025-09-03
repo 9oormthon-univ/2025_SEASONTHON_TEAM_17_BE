@@ -39,6 +39,7 @@ class Member (
     @Column(name = "member_role")
     var memberRole: MemberRole,
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "member_activate", nullable = false)
     var status: Status = Status.ACTIVE,
 
