@@ -12,10 +12,10 @@ import shop.maeum.global.template.RspTemplate
 @RequestMapping("/api/v1/fcm/token")
 class MemberFcmTokenController(
     private val memberFcmTokenService: MemberFcmTokenService
-) {
+) : MemberFcmTokenDocs {
 
     @PostMapping("/login")
-    fun saveFcmToken(@RequestBody request: FcmTokenLoginRequest): RspTemplate<Void> {
+    override fun saveFcmToken(@RequestBody request: FcmTokenLoginRequest): RspTemplate<Void> {
         memberFcmTokenService.saveOrActivateFcmToken(request.token, request.deviceInfo)
         return RspTemplate(
             httpStatus = HttpStatus.OK,
@@ -24,7 +24,7 @@ class MemberFcmTokenController(
     }
 
     @PostMapping("/logout")
-    fun deactivateFcmToken(@RequestBody request: FcmTokenLogoutRequest): RspTemplate<Void> {
+    override fun deactivateFcmToken(@RequestBody request: FcmTokenLogoutRequest): RspTemplate<Void> {
         memberFcmTokenService.deactivateFcmToken(request.token)
         return RspTemplate(
             httpStatus = HttpStatus.OK,

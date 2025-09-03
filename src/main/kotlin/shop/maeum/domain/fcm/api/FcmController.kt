@@ -12,10 +12,10 @@ import shop.maeum.global.template.RspTemplate
 @RequestMapping("/api/v1/fcm")
 class FcmController(
     private val fcmService: FcmService
-) {
+) : FcmDocs{
 
     @PostMapping
-    fun pushMessage(@RequestBody fcmSendDto: FcmSendDto): RspTemplate<FcmSendResponse> {
+    override fun pushMessage(@RequestBody fcmSendDto: FcmSendDto): RspTemplate<FcmSendResponse> {
         val response = fcmService.sendMessageTo(fcmSendDto)
         return RspTemplate(
             httpStatus = HttpStatus.OK,
@@ -25,7 +25,7 @@ class FcmController(
     }
 
     @GetMapping
-    fun getNotification(): RspTemplate<FcmNotificationResponses> {
+    override fun getNotification(): RspTemplate<FcmNotificationResponses> {
         val notifications = fcmService.getNotificationsForCurrentUser()
         return RspTemplate(
             httpStatus = HttpStatus.OK,
