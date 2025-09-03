@@ -5,22 +5,22 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import shop.maeum.domain.ai.application.AiService
 import shop.maeum.domain.diary.api.dto.request.WriteDiaryReqDto
-import shop.maeum.domain.diary.api.dto.response.WriteDiaryResDto
 import shop.maeum.domain.diary.domain.Diary
 import shop.maeum.domain.diary.domain.repository.DiaryRepository
 import shop.maeum.global.entity.Status
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
-import shop.maeum.domain.diary.api.dto.response.DiaryDetailResDto
-import shop.maeum.domain.diary.api.dto.response.DiaryListWithPageResDto
-import shop.maeum.domain.diary.api.dto.response.DiarySummaryResDto
+import shop.maeum.domain.diary.api.dto.response.*
 import shop.maeum.domain.diary.exception.DiaryNotFoundException
 import shop.maeum.domain.emotion.domain.Emotion
 import shop.maeum.domain.emotion.domain.EmotionType
 import shop.maeum.domain.member.repository.MemberRepository
 import shop.maeum.domain.security.util.SecurityUtil
 import shop.maeum.global.dto.PageInfoResDto
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 
 @Service
 @Transactional(readOnly = true)
@@ -124,4 +124,50 @@ class DiaryService(
         diaryRepository.delete(diary)
     }
 
+    fun getWrittenDaysInMonth(year: Int, month: Int): List<Int> {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with email ${securityUtil.getCurrentEmail()} not found")
+
+        val start = LocalDate.of(year, month, 1).atStartOfDay()
+        val end = start.withDayOfMonth(start.toLocalDate().lengthOfMonth()).with(LocalTime.MAX)
+
+        val diaries = diaryRepository.findAllByMemberIdAndCreatedAtBetween(member.id!!, start, end)
+
+        return diaries.map { it.createdAt!!.dayOfMonth }.distinct()
+    }
+
+    fun getDiaryByDate(year: Int, month: Int, day: Int): DiaryDetailResDto {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with email ${securityUtil.getCurrentEmail()} not found")
+
+        val start = LocalDateTime.of(year, month, day, 0, 0)
+        val end = LocalDateTime.of(year, month, day, 23, 59, 59)
+
+        val diary = diaryRepository.findFirstByMemberIdAndCreatedAtBetween(member.id!!, start, end)
+            ?: throw DiaryNotFoundException()
+
+        return DiaryDetailResDto.fromEntity(diary)
+    }
+
+    fun hasDiaryToday(): DiaryTodayResDto {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member not found")
+
+        val today = LocalDate.now()
+        val start = today.atStartOfDay()
+        val end = today.atTime(LocalTime.MAX)
+
+        val diary = diaryRepository.findFirstByMemberIdAndCreatedAtBetween(member.id!!, start, end)
+
+        return if (diary != null) {
+            DiaryTodayResDto(
+                written = true,
+                diaryId = diary.id,
+                title = diary.title,
+                preview = diary.content.take(10)
+            )
+        } else {
+            DiaryTodayResDto(written = false)
+        }
+    }
 }
