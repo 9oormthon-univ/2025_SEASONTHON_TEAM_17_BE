@@ -8,6 +8,10 @@ import shop.maeum.domain.friend.api.dto.response.FriendSimpleResDto
 import shop.maeum.domain.friend.domain.Friend
 import shop.maeum.domain.friend.domain.FriendStatus
 import shop.maeum.domain.friend.domain.repository.FriendRepository
+import shop.maeum.domain.friend.exception.FriendAccessDeniedException
+import shop.maeum.domain.friend.exception.FriendAlreadyExistsException
+import shop.maeum.domain.friend.exception.FriendNotFoundException
+import shop.maeum.domain.friend.exception.FriendRequestInvalidException
 import shop.maeum.domain.member.repository.MemberRepository
 import shop.maeum.domain.security.util.SecurityUtil
 import shop.maeum.global.dto.CursorPageResDto
@@ -27,11 +31,11 @@ class FriendService(
         val toMember = memberRepository.findByEmail(toMemberEmail)
             ?: throw IllegalArgumentException("toMember with id $toMemberEmail not found")
 
-        if (fromMember.id == toMember.id) throw IllegalArgumentException("자기 자신에게는 친구 요청할 수 없습니다.")
+        if (fromMember.id == toMember.id) throw FriendRequestInvalidException("자기 자신에게는 친구 요청할 수 없습니다.")
 
 
         val existing = friendRepository.findByFromMemberAndToMember(fromMember, toMember)
-        if (existing != null) throw IllegalStateException("이미 친구 요청을 보냈습니다.")
+        if (existing != null) throw FriendAlreadyExistsException("이미 친구 요청을 보냈습니다.")
 
         val request = Friend(
             fromMember = fromMember,
@@ -49,10 +53,10 @@ class FriendService(
             ?: throw IllegalArgumentException("Member with id $requestMemberEmail not found")
 
         val request = friendRepository.findByFromMemberAndToMember(requestMember, member)
-            ?: throw IllegalArgumentException("친구 요청이 존재하지 않습니다.")
+            ?: throw FriendNotFoundException("친구 요청이 존재하지 않습니다.")
 
         if (request.friendStatus != FriendStatus.REQUESTED)
-            throw IllegalStateException("수락할 수 없는 상태입니다.")
+            throw FriendAccessDeniedException("친구 요청중인 상태가 아닙니다.")
 
         request.friendStatus = FriendStatus.ACCEPTED
     }
@@ -65,7 +69,7 @@ class FriendService(
             ?: throw IllegalArgumentException("Member with id $requestMemberEmail not found")
 
         val request = friendRepository.findByFromMemberAndToMember(requestMember, member)
-            ?: throw IllegalArgumentException("친구 요청이 존재하지 않습니다.")
+            ?: throw FriendNotFoundException("친구 요청이 존재하지 않습니다.")
 
         request.friendStatus = FriendStatus.REJECTED
     }
@@ -78,10 +82,10 @@ class FriendService(
             ?: throw IllegalArgumentException("Member with id $toMemberEmail not found")
 
         val request = friendRepository.findByFromMemberAndToMember(fromMember, toMember)
-            ?: throw IllegalArgumentException("친구 요청이 존재하지 않습니다.")
+            ?: throw FriendNotFoundException("친구 요청이 존재하지 않습니다.")
 
         if (request.friendStatus != FriendStatus.REQUESTED) {
-            throw IllegalStateException("요청 상태가 아니므로 취소할 수 없습니다.")
+            throw FriendAccessDeniedException("요청 상태가 아니므로 취소할 수 없습니다.")
         }
 
         friendRepository.delete(request)
