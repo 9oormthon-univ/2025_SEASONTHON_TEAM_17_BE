@@ -160,7 +160,6 @@ class FriendService(
         )
     }
 
-    @Transactional
     fun searchFriendWithCursor(
         keyword: String,
         cursor: Long?,
