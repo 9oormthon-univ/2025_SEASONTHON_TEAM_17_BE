@@ -14,15 +14,15 @@ class FcmController(
     private val fcmService: FcmService
 ) : FcmDocs{
 
-    @PostMapping
-    override fun pushMessage(@RequestBody fcmSendDto: FcmSendDto): RspTemplate<FcmSendResponse> {
-        val response = fcmService.sendMessageTo(fcmSendDto)
-        return RspTemplate(
-            httpStatus = HttpStatus.OK,
-            message = "푸시 메시지 전송 성공",
-            data = response
-        )
-    }
+//    @PostMapping
+//    override fun pushMessage(@RequestBody fcmSendDto: FcmSendDto): RspTemplate<FcmSendResponse> {
+//        val response = fcmService.sendMessageTo(fcmSendDto)
+//        return RspTemplate(
+//            httpStatus = HttpStatus.OK,
+//            message = "푸시 메시지 전송 성공",
+//            data = response
+//        )
+//    }
 
     @GetMapping
     override fun getNotification(): RspTemplate<FcmNotificationResponses> {
