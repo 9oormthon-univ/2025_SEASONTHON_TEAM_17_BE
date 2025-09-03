@@ -9,6 +9,7 @@ import shop.maeum.domain.diary.domain.Diary
 import shop.maeum.domain.diary.domain.repository.DiaryRepository
 import shop.maeum.global.entity.Status
 import org.slf4j.LoggerFactory
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import shop.maeum.domain.diary.api.dto.response.*
@@ -17,6 +18,7 @@ import shop.maeum.domain.emotion.domain.Emotion
 import shop.maeum.domain.emotion.domain.EmotionType
 import shop.maeum.domain.member.repository.MemberRepository
 import shop.maeum.domain.security.util.SecurityUtil
+import shop.maeum.global.dto.CursorPageResDto
 import shop.maeum.global.dto.PageInfoResDto
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -97,15 +99,23 @@ class DiaryService(
         return emotions to feedback
     }
 
-    fun getDiaries(pageable: Pageable): DiaryListWithPageResDto {
+    fun getDiaries(cursor: Long?, limit: Int = 3): CursorPageResDto<DiarySummaryResDto, Long> {
         val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
             ?: throw IllegalArgumentException("Member with email ${securityUtil.getCurrentEmail()} not found")
 
-        val diaryPage = diaryRepository.findAllByMemberIdOrderByCreatedAtDesc(member.id!!, pageable)
+        val diaries = diaryRepository.findAllByMemberWithCursor(
+            memberId = member.id!!,
+            cursor = cursor,
+            pageable = PageRequest.of(0, limit + 1)
+        )
 
-        return DiaryListWithPageResDto(
-            diaries = diaryPage.content.map { DiarySummaryResDto.fromEntity(it) },
-            pageInfo = PageInfoResDto.from(diaryPage)
+        val hasNext = diaries.size > limit
+        val sliced = diaries.take(limit)
+
+        return CursorPageResDto(
+            data = sliced.map { DiarySummaryResDto.fromEntity(it) },
+            nextCursor = if (hasNext) sliced.last().id else null,
+            hasNext = hasNext
         )
     }
 
