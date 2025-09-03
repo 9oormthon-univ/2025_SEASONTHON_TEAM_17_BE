@@ -55,8 +55,11 @@ class FriendController(
     }
 
     @GetMapping("/received")
-    fun getReceivedFriendRequests(): RspTemplate<List<FriendSimpleResDto>> {
-        val result = friendService.getReceivedFriendRequests()
+    fun getReceivedFriendRequests(
+        @RequestParam(required = false) cursor: Long?,
+        @RequestParam(defaultValue = "5") limit: Int
+    ): RspTemplate<CursorPageResDto<FriendSimpleResDto>> {
+        val result = friendService.getReceivedFriendRequests(cursor, limit)
         return RspTemplate(
             httpStatus = HttpStatus.OK,
             message = "받은 친구 요청 목록 조회 성공",
@@ -65,8 +68,11 @@ class FriendController(
     }
 
     @GetMapping("/sent")
-    fun getSentFriendRequests(): RspTemplate<List<FriendSimpleResDto>> {
-        val result = friendService.getSentFriendRequests()
+    fun getSentFriendRequests(
+        @RequestParam(required = false) cursor: Long?,
+        @RequestParam(defaultValue = "5") limit: Int
+    ): RspTemplate<CursorPageResDto<FriendSimpleResDto>> {
+        val result = friendService.getSentFriendRequests(cursor, limit)
         return RspTemplate(
             httpStatus = HttpStatus.OK,
             message = "보낸 친구 요청 목록 조회 성공",
@@ -76,7 +82,7 @@ class FriendController(
 
     @GetMapping
     fun getMyFriends(
-        @RequestParam(required = false) cursor: String?,
+        @RequestParam(required = false) cursor: Long?,
         @RequestParam(defaultValue = "5") limit: Int
     ): RspTemplate<CursorPageResDto<FriendSimpleResDto>> {
         val result = friendService.getFriends(cursor, limit)

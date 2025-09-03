@@ -1,6 +1,7 @@
 package shop.maeum.domain.friend.application
 
 import jakarta.validation.constraints.Email
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import shop.maeum.domain.friend.api.dto.response.FriendSimpleResDto
@@ -86,39 +87,70 @@ class FriendService(
         friendRepository.delete(request)
     }
 
-    fun getReceivedFriendRequests(): List<FriendSimpleResDto> {
-        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
-            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
-        val list = friendRepository.findAllByToMemberAndFriendStatus(member, FriendStatus.REQUESTED)
-
-        return list.map { FriendSimpleResDto.of(it.fromMember) }
-    }
-
-    fun getSentFriendRequests(): List<FriendSimpleResDto> {
-        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
-            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
-        val list = friendRepository.findAllByFromMemberAndFriendStatus(member, FriendStatus.REQUESTED)
-
-        return list.map { FriendSimpleResDto.of(it.toMember) }
-    }
-
-    fun getFriends(cursor: String?, limit: Int = 5): CursorPageResDto<FriendSimpleResDto> {
+    fun getFriends(cursor: Long?, limit: Int = 5): CursorPageResDto<FriendSimpleResDto> {
         val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
             ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
 
-        val friendEntities = friendRepository.findAllAcceptedFriendsWithCursor(member.id!!, cursor, limit + 1)
+        val friendEntities = friendRepository.findAllAcceptedFriendsWithCursor(
+            memberId = member.id!!,
+            cursor = cursor,
+            pageable = PageRequest.of(0, limit + 1)
+        )
 
         val friends = friendEntities.map {
             if (it.fromMember == member) it.toMember else it.fromMember
         }
 
-        val distinctFriends = friends.distinctBy { it.id }.map { FriendSimpleResDto.of(it) }
-        val hasNext = distinctFriends.size > limit
-        val sliced = distinctFriends.take(limit)
-        val nextCursor = if (hasNext) sliced.last().memberId else null
+        val sliced = friends.take(limit)
+        val hasNext = friendEntities.size > limit
+        val nextCursor = if (hasNext) friendEntities[limit - 1].id else null
 
         return CursorPageResDto(
-            data = sliced,
+            data = sliced.map { FriendSimpleResDto.of(it) },
+            nextCursor = nextCursor,
+            hasNext = hasNext
+        )
+    }
+
+    fun getReceivedFriendRequests(cursor: Long?, limit: Int = 5): CursorPageResDto<FriendSimpleResDto> {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+
+        val requests = friendRepository.findReceivedRequestsWithCursor(
+            member = member,
+            status = FriendStatus.REQUESTED,
+            cursor = cursor,
+            pageable = PageRequest.of(0, limit + 1)
+        )
+
+        val sliced = requests.take(limit)
+        val hasNext = requests.size > limit
+        val nextCursor = if (hasNext) requests[limit - 1].id else null
+
+        return CursorPageResDto(
+            data = sliced.map { FriendSimpleResDto.of(it.fromMember) },
+            nextCursor = nextCursor,
+            hasNext = hasNext
+        )
+    }
+
+    fun getSentFriendRequests(cursor: Long?, limit: Int = 5): CursorPageResDto<FriendSimpleResDto> {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+
+        val requests = friendRepository.findSentRequestsWithCursor(
+            member = member,
+            status = FriendStatus.REQUESTED,
+            cursor = cursor,
+            pageable = PageRequest.of(0, limit + 1)
+        )
+
+        val sliced = requests.take(limit)
+        val hasNext = requests.size > limit
+        val nextCursor = if (hasNext) requests[limit - 1].id else null
+
+        return CursorPageResDto(
+            data = sliced.map { FriendSimpleResDto.of(it.toMember) },
             nextCursor = nextCursor,
             hasNext = hasNext
         )

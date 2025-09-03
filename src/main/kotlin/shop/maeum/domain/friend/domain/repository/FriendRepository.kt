@@ -15,16 +15,45 @@ interface FriendRepository : JpaRepository<Friend, Long> {
     @Query("""
     SELECT f
     FROM Friend f
-    WHERE f.friendStatus = 'ACCEPTED'
-      AND (f.fromMember.id = :memberId OR f.toMember.id = :memberId)
-      AND (:cursor IS NULL OR f.id < :cursor) 
+    WHERE (f.fromMember.id = :memberId OR f.toMember.id = :memberId)
+      AND f.friendStatus = 'ACCEPTED'
+      AND (:cursor IS NULL OR f.id < :cursor)
     ORDER BY f.id DESC
 """)
     fun findAllAcceptedFriendsWithCursor(
         @Param("memberId") memberId: String,
-        @Param("cursor") cursor: String?,
-        @Param("limit") limit: Int
+        @Param("cursor") cursor: Long?,
+        pageable: org.springframework.data.domain.Pageable
     ): List<Friend>
 
+    @Query("""
+    SELECT f
+    FROM Friend f
+    WHERE f.toMember = :member
+      AND f.friendStatus = :status
+      AND (:cursor IS NULL OR f.id < :cursor)
+    ORDER BY f.id DESC
+""")
+    fun findReceivedRequestsWithCursor(
+        @Param("member") member: Member,
+        @Param("status") status: FriendStatus,
+        @Param("cursor") cursor: Long?,
+        pageable: org.springframework.data.domain.Pageable
+    ): List<Friend>
+
+    @Query("""
+    SELECT f
+    FROM Friend f
+    WHERE f.fromMember = :member
+      AND f.friendStatus = :status
+      AND (:cursor IS NULL OR f.id < :cursor)
+    ORDER BY f.id DESC
+""")
+    fun findSentRequestsWithCursor(
+        @Param("member") member: Member,
+        @Param("status") status: FriendStatus,
+        @Param("cursor") cursor: Long?,
+        pageable: org.springframework.data.domain.Pageable
+    ): List<Friend>
 }
 
