@@ -55,6 +55,16 @@ class FriendController(
         )
     }
 
+    @DeleteMapping
+    override fun removeFriend(@RequestParam email: String): RspTemplate<Nothing?> {
+        friendService.removeFriend(email)
+        return RspTemplate(
+            httpStatus = HttpStatus.OK,
+            message = "친구 관계를 삭제했습니다.",
+            data = null
+        )
+    }
+
     @GetMapping("/received")
     override fun getReceivedFriendRequests(
         @RequestParam(required = false) cursor: Long?,
@@ -99,7 +109,38 @@ class FriendController(
         @RequestParam keyword: String,
         @RequestParam(required = false) cursor: Long?,
         @RequestParam(defaultValue = "5") limit: Int
-    ): CursorPageResDto<FriendSearchResDto, String> {
-        return friendService.searchFriendWithCursor(keyword, cursor, limit)
+    ): RspTemplate<CursorPageResDto<FriendSearchResDto, Long>> {
+        val result = friendService.searchFriendWithCursor(keyword, cursor, limit)
+        return RspTemplate(HttpStatus.OK, "전체 회원 검색 성공", result)
+    }
+
+    @GetMapping("/search/my-friends")
+    override fun searchMyFriends(
+        @RequestParam keyword: String,
+        @RequestParam(required = false) cursor: Long?,
+        @RequestParam(defaultValue = "5") limit: Int
+    ): RspTemplate<CursorPageResDto<FriendSimpleResDto, Long>> {
+        val result = friendService.searchMyFriendsWithCursor(keyword, cursor, limit)
+        return RspTemplate(HttpStatus.OK, "내 친구 목록 검색 성공", result)
+    }
+
+    @GetMapping("/search/sent")
+    override fun searchSentRequests(
+        @RequestParam keyword: String,
+        @RequestParam(required = false) cursor: Long?,
+        @RequestParam(defaultValue = "5") limit: Int
+    ): RspTemplate<CursorPageResDto<FriendSimpleResDto, Long>> {
+        val result = friendService.searchSentFriendRequestsWithCursor(keyword, cursor, limit)
+        return RspTemplate(HttpStatus.OK, "보낸 친구 요청 목록 검색 성공", result)
+    }
+
+    @GetMapping("/search/received")
+    override fun searchReceivedRequests(
+        @RequestParam keyword: String,
+        @RequestParam(required = false) cursor: Long?,
+        @RequestParam(defaultValue = "5") limit: Int
+    ): RspTemplate<CursorPageResDto<FriendSimpleResDto, Long>> {
+        val result = friendService.searchReceivedFriendRequestsWithCursor(keyword, cursor, limit)
+        return RspTemplate(HttpStatus.OK, "받은 친구 요청 목록 검색 성공", result)
     }
 }

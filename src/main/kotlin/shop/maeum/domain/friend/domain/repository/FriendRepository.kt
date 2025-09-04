@@ -1,5 +1,6 @@
 package shop.maeum.domain.friend.domain.repository
 
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -21,7 +22,7 @@ interface FriendRepository : JpaRepository<Friend, Long> {
     fun findAllAcceptedFriendsWithCursor(
         @Param("memberId") memberId: String,
         @Param("cursor") cursor: Long?,
-        pageable: org.springframework.data.domain.Pageable
+        pageable: Pageable
     ): List<Friend>
 
     @Query("""
@@ -36,7 +37,7 @@ interface FriendRepository : JpaRepository<Friend, Long> {
         @Param("member") member: Member,
         @Param("status") status: FriendStatus,
         @Param("cursor") cursor: Long?,
-        pageable: org.springframework.data.domain.Pageable
+        pageable: Pageable
     ): List<Friend>
 
     @Query("""
@@ -51,7 +52,83 @@ interface FriendRepository : JpaRepository<Friend, Long> {
         @Param("member") member: Member,
         @Param("status") status: FriendStatus,
         @Param("cursor") cursor: Long?,
-        pageable: org.springframework.data.domain.Pageable
+        pageable: Pageable
     ): List<Friend>
+
+    @Query("""
+    SELECT f
+    FROM Friend f
+    JOIN f.fromMember fm
+    JOIN f.toMember tm
+    WHERE (fm.id = :memberId OR tm.id = :memberId)
+      AND (
+        (CASE WHEN fm.id = :memberId THEN tm.nickname ELSE fm.nickname END) LIKE %:keyword%
+        OR (CASE WHEN fm.id = :memberId THEN tm.email ELSE fm.email END) LIKE %:keyword%
+      )
+      AND (:cursor IS NULL OR f.id > :cursor)
+    ORDER BY f.id ASC
+""")
+    fun searchFriendsWithCursor(
+        @Param("memberId") memberId: String,
+        @Param("keyword") keyword: String,
+        @Param("cursor") cursor: Long?,
+        pageable: Pageable
+    ): List<Friend>
+
+    @Query("""
+    SELECT f
+    FROM Friend f
+    JOIN f.fromMember fm
+    JOIN f.toMember tm
+    WHERE f.friendStatus = 'ACCEPTED'
+      AND (fm.id = :memberId OR tm.id = :memberId)
+      AND (
+        (CASE WHEN fm.id = :memberId THEN tm.nickname ELSE fm.nickname END) LIKE %:keyword%
+        OR (CASE WHEN fm.id = :memberId THEN tm.email ELSE fm.email END) LIKE %:keyword%
+      )
+      AND (:cursor IS NULL OR f.id > :cursor)
+    ORDER BY f.id ASC
+""")
+    fun searchMyFriendsWithCursor(
+        @Param("memberId") memberId: String,
+        @Param("keyword") keyword: String,
+        @Param("cursor") cursor: Long?,
+        pageable: Pageable
+    ): List<Friend>
+
+    @Query("""
+    SELECT f
+    FROM Friend f
+    JOIN f.toMember tm
+    WHERE f.friendStatus = 'REQUESTED'
+      AND f.fromMember.id = :memberId
+      AND (tm.nickname LIKE %:keyword% OR tm.email LIKE %:keyword%)
+      AND (:cursor IS NULL OR f.id > :cursor)
+    ORDER BY f.id ASC
+""")
+    fun searchSentFriendRequestsWithCursor(
+        @Param("memberId") memberId: String,
+        @Param("keyword") keyword: String,
+        @Param("cursor") cursor: Long?,
+        pageable: Pageable
+    ): List<Friend>
+
+    @Query("""
+    SELECT f
+    FROM Friend f
+    JOIN f.fromMember fm
+    WHERE f.friendStatus = 'REQUESTED'
+      AND f.toMember.id = :memberId
+      AND (fm.nickname LIKE %:keyword% OR fm.email LIKE %:keyword%)
+      AND (:cursor IS NULL OR f.id > :cursor)
+    ORDER BY f.id ASC
+""")
+    fun searchReceivedFriendRequestsWithCursor(
+        @Param("memberId") memberId: String,
+        @Param("keyword") keyword: String,
+        @Param("cursor") cursor: Long?,
+        pageable: Pageable
+    ): List<Friend>
+
 }
 

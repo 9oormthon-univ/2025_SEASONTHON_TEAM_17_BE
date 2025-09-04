@@ -1,8 +1,11 @@
 package shop.maeum.domain.friend.application
 
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import shop.maeum.domain.fcm.event.friend.FriendAcceptedEvent
+import shop.maeum.domain.fcm.event.friend.FriendRequestedEvent
 import shop.maeum.domain.friend.api.dto.response.FriendSearchResDto
 import shop.maeum.domain.friend.api.dto.response.FriendSimpleResDto
 import shop.maeum.domain.friend.domain.Friend
@@ -21,44 +24,95 @@ import shop.maeum.global.dto.CursorPageResDto
 class FriendService(
     private val friendRepository: FriendRepository,
     private val memberRepository: MemberRepository,
-    private val securityUtil: SecurityUtil
+    private val securityUtil: SecurityUtil,
+    private val eventPublisher: ApplicationEventPublisher
 ) {
 
     @Transactional
     fun requestFriend(toMemberEmail: String) {
         val fromMember = memberRepository.findByEmail(securityUtil.getCurrentEmail())
-            ?: throw IllegalArgumentException("fromMember with id ${securityUtil.getCurrentEmail()} not found")
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
         val toMember = memberRepository.findByEmail(toMemberEmail)
-            ?: throw IllegalArgumentException("toMember with id $toMemberEmail not found")
+            ?: throw IllegalArgumentException("Member with id $toMemberEmail not found")
 
-        if (fromMember.id == toMember.id) throw FriendRequestInvalidException("자기 자신에게는 친구 요청할 수 없습니다.")
-
+        if (fromMember.id == toMember.id)
+            throw FriendRequestInvalidException("자기 자신에게는 친구 요청할 수 없습니다.")
 
         val existing = friendRepository.findByFromMemberAndToMember(fromMember, toMember)
-        if (existing != null) throw FriendAlreadyExistsException("이미 친구 요청을 보냈습니다.")
+        if (existing != null) {
+            when (existing.friendStatus) {
+                FriendStatus.REQUESTED -> throw FriendAlreadyExistsException("이미 요청을 보냈습니다.")
+                FriendStatus.ACCEPTED -> throw FriendAlreadyExistsException("이미 친구입니다.")
+                FriendStatus.REJECTED -> {
+                    existing.friendStatus = FriendStatus.REQUESTED
 
-        val request = Friend(
-            fromMember = fromMember,
-            toMember = toMember,
-            friendStatus = FriendStatus.REQUESTED
-        )
+                    eventPublisher.publishEvent(
+                        FriendRequestedEvent(
+                            fromMemberId = fromMember.id!!,
+                            fromMemberNickname = fromMember.nickname,
+                            toMemberId = toMember.id!!
+                        )
+                    )
+                    return
+                }
+            }
+        }
+
+        val reverseExisting = friendRepository.findByFromMemberAndToMember(toMember, fromMember)
+        if (reverseExisting != null) {
+            when (reverseExisting.friendStatus) {
+                FriendStatus.REQUESTED -> throw FriendAlreadyExistsException("상대방이 이미 요청을 보냈습니다.")
+                FriendStatus.ACCEPTED -> throw FriendAlreadyExistsException("이미 친구입니다.")
+                FriendStatus.REJECTED -> {
+                    reverseExisting.friendStatus = FriendStatus.REQUESTED
+
+                    eventPublisher.publishEvent(
+                        FriendRequestedEvent(
+                            fromMemberId = fromMember.id!!,
+                            fromMemberNickname = fromMember.nickname,
+                            toMemberId = toMember.id!!
+                        )
+                    )
+                    return
+                }
+            }
+        }
+
+        val request = Friend(fromMember = fromMember, toMember = toMember, friendStatus = FriendStatus.REQUESTED)
         friendRepository.save(request)
+
+        eventPublisher.publishEvent(
+            FriendRequestedEvent(
+                fromMemberId = fromMember.id!!,
+                fromMemberNickname = fromMember.nickname,
+                toMemberId = toMember.id!!
+            )
+        )
     }
 
     @Transactional
     fun acceptFriend(requestMemberEmail: String) {
-        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+        val me = memberRepository.findByEmail(securityUtil.getCurrentEmail())
             ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
-        val requestMember = memberRepository.findByEmail(requestMemberEmail)
+        val requester = memberRepository.findByEmail(requestMemberEmail)
             ?: throw IllegalArgumentException("Member with id $requestMemberEmail not found")
 
-        val request = friendRepository.findByFromMemberAndToMember(requestMember, member)
+        val request = friendRepository.findByFromMemberAndToMember(requester, me)
             ?: throw FriendNotFoundException("친구 요청이 존재하지 않습니다.")
 
-        if (request.friendStatus != FriendStatus.REQUESTED)
+        if (request.friendStatus != FriendStatus.REQUESTED) {
             throw FriendAccessDeniedException("친구 요청중인 상태가 아닙니다.")
+        }
 
         request.friendStatus = FriendStatus.ACCEPTED
+
+        eventPublisher.publishEvent(
+            FriendAcceptedEvent(
+                fromMemberId = requester.id!!,
+                toMemberId = me.id!!,
+                toMemberNickname = me.nickname
+            )
+        )
     }
 
     @Transactional
@@ -71,7 +125,17 @@ class FriendService(
         val request = friendRepository.findByFromMemberAndToMember(requestMember, member)
             ?: throw FriendNotFoundException("친구 요청이 존재하지 않습니다.")
 
-        request.friendStatus = FriendStatus.REJECTED
+        when (request.friendStatus) {
+            FriendStatus.REQUESTED -> {
+                request.friendStatus = FriendStatus.REJECTED
+            }
+            FriendStatus.REJECTED -> {
+                throw FriendAccessDeniedException("이미 거절한 요청입니다.")
+            }
+            FriendStatus.ACCEPTED -> {
+                throw FriendAccessDeniedException("이미 수락한 요청은 거절할 수 없습니다.")
+            }
+        }
     }
 
     @Transactional
@@ -84,11 +148,41 @@ class FriendService(
         val request = friendRepository.findByFromMemberAndToMember(fromMember, toMember)
             ?: throw FriendNotFoundException("친구 요청이 존재하지 않습니다.")
 
-        if (request.friendStatus != FriendStatus.REQUESTED) {
-            throw FriendAccessDeniedException("요청 상태가 아니므로 취소할 수 없습니다.")
+        when (request.friendStatus) {
+            FriendStatus.REQUESTED -> {
+                friendRepository.delete(request)
+            }
+            FriendStatus.REJECTED -> {
+                throw FriendAccessDeniedException("이미 취소된 요청입니다.")
+            }
+            FriendStatus.ACCEPTED -> {
+                throw FriendAccessDeniedException("이미 수락된 요청은 취소할 수 없습니다.")
+            }
+        }
+    }
+
+    @Transactional
+    fun removeFriend(friendEmail: String) {
+        val me = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+        val friend = memberRepository.findByEmail(friendEmail)
+            ?: throw IllegalArgumentException("Member with id $friendEmail not found")
+
+        val relation = friendRepository.findByFromMemberAndToMember(me, friend)
+        val reverseRelation = friendRepository.findByFromMemberAndToMember(friend, me)
+
+        if (relation == null && reverseRelation == null) {
+            throw FriendNotFoundException("친구 관계가 존재하지 않습니다.")
         }
 
-        friendRepository.delete(request)
+        if ((relation?.friendStatus == FriendStatus.ACCEPTED) ||
+            (reverseRelation?.friendStatus == FriendStatus.ACCEPTED)
+        ) {
+            relation?.let { friendRepository.delete(it) }
+            reverseRelation?.let { friendRepository.delete(it) }
+        } else {
+            throw FriendAccessDeniedException("친구 상태가 아니므로 삭제할 수 없습니다.")
+        }
     }
 
     fun getFriends(cursor: Long?, limit: Int = 5): CursorPageResDto<FriendSimpleResDto, Long> {
@@ -164,33 +258,119 @@ class FriendService(
         keyword: String,
         cursor: Long?,
         limit: Int = 5
-    ): CursorPageResDto<FriendSearchResDto, String> {
-        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+    ): CursorPageResDto<FriendSearchResDto, Long> {
+        val me = memberRepository.findByEmail(securityUtil.getCurrentEmail())
             ?: throw IllegalArgumentException("Member with email ${securityUtil.getCurrentEmail()} not found")
 
-        val candidates = memberRepository.searchByKeywordWithCursor(
+        val friends = friendRepository.searchFriendsWithCursor(
+            memberId = me.id!!,
             keyword = keyword,
             cursor = cursor,
-            limit = limit + 1
-        ).filter { it.id != member.id }
+            pageable = PageRequest.of(0, limit + 1)
+        )
 
-        val sliced = candidates.take(limit)
-        val hasNext = candidates.size > limit
+        val sliced = friends.take(limit)
+        val hasNext = friends.size > limit
         val nextCursor = if (hasNext) sliced.last().id else null
 
-        val results = sliced.map {
-            val sent = friendRepository.findByFromMemberAndToMember(member, it)
-            val received = friendRepository.findByFromMemberAndToMember(it, member)
-
+        val results = sliced.map { friend ->
+            val target = if (friend.fromMember == me) friend.toMember else friend.fromMember
             FriendSearchResDto(
-                memberId = it.id!!,
-                email = it.email,
-                nickname = it.nickname,
-                profileImageUrl = it.profilePath ?: "",
-                isFriend = (sent?.friendStatus == FriendStatus.ACCEPTED || received?.friendStatus == FriendStatus.ACCEPTED),
-                isRequested = sent?.friendStatus == FriendStatus.REQUESTED
+                memberId = target.id!!,
+                email = target.email,
+                nickname = target.nickname,
+                profileImageUrl = target.profilePath ?: "",
+                isFriend = friend.friendStatus == FriendStatus.ACCEPTED,
+                isRequested = friend.friendStatus == FriendStatus.REQUESTED
             )
         }
+
+        return CursorPageResDto(
+            data = results,
+            nextCursor = nextCursor,
+            hasNext = hasNext
+        )
+    }
+
+    fun searchMyFriendsWithCursor(
+        keyword: String,
+        cursor: Long?,
+        limit: Int = 5
+    ): CursorPageResDto<FriendSimpleResDto, Long> {
+        val me = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with email ${securityUtil.getCurrentEmail()} not found")
+
+        val friends = friendRepository.searchMyFriendsWithCursor(
+            memberId = me.id!!,
+            keyword = keyword,
+            cursor = cursor,
+            pageable = PageRequest.of(0, limit + 1)
+        )
+
+        val sliced = friends.take(limit)
+        val hasNext = friends.size > limit
+        val nextCursor = if (hasNext) sliced.last().id else null
+
+        val results = sliced.map { friend ->
+            val target = if (friend.fromMember == me) friend.toMember else friend.fromMember
+            FriendSimpleResDto.of(target)
+        }
+
+        return CursorPageResDto(
+            data = results,
+            nextCursor = nextCursor,
+            hasNext = hasNext
+        )
+    }
+
+    fun searchSentFriendRequestsWithCursor(
+        keyword: String,
+        cursor: Long?,
+        limit: Int = 5
+    ): CursorPageResDto<FriendSimpleResDto, Long> {
+        val me = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with email ${securityUtil.getCurrentEmail()} not found")
+
+        val requests = friendRepository.searchSentFriendRequestsWithCursor(
+            memberId = me.id!!,
+            keyword = keyword,
+            cursor = cursor,
+            pageable = PageRequest.of(0, limit + 1)
+        )
+
+        val sliced = requests.take(limit)
+        val hasNext = requests.size > limit
+        val nextCursor = if (hasNext) sliced.last().id else null
+
+        val results = sliced.map { FriendSimpleResDto.of(it.toMember) }
+
+        return CursorPageResDto(
+            data = results,
+            nextCursor = nextCursor,
+            hasNext = hasNext
+        )
+    }
+
+    fun searchReceivedFriendRequestsWithCursor(
+        keyword: String,
+        cursor: Long?,
+        limit: Int = 5
+    ): CursorPageResDto<FriendSimpleResDto, Long> {
+        val me = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with email ${securityUtil.getCurrentEmail()} not found")
+
+        val requests = friendRepository.searchReceivedFriendRequestsWithCursor(
+            memberId = me.id!!,
+            keyword = keyword,
+            cursor = cursor,
+            pageable = PageRequest.of(0, limit + 1)
+        )
+
+        val sliced = requests.take(limit)
+        val hasNext = requests.size > limit
+        val nextCursor = if (hasNext) sliced.last().id else null
+
+        val results = sliced.map { FriendSimpleResDto.of(it.fromMember) }
 
         return CursorPageResDto(
             data = results,

@@ -107,4 +107,41 @@ class FcmService(
         val notifications = fcmNotificationRepository.findTop5ByMemberFcmToken_MemberIdOrderByCreatedAtDesc(member.id!!)
         return FcmNotificationResponses.from(notifications)
     }
+
+    @Transactional
+    @Throws(IOException::class)
+    fun sendMessageToUser(targetMemberId: String, fcmSendDto: FcmSendDto): FcmSendResponse {
+        val tokens = memberFcmTokenRepository.findAllByMemberIdAndActiveTrue(targetMemberId)
+        var successCount = 0
+
+        for (tokenEntity in tokens) {
+            val token = tokenEntity.token
+            val message = makeMessage(token, fcmSendDto)
+
+            val headers = HttpHeaders().apply {
+                contentType = MediaType.APPLICATION_JSON
+                setBearerAuth(getAccessToken())
+            }
+
+            val entity = HttpEntity(message, headers)
+            val restTemplate = RestTemplate().apply {
+                messageConverters.add(0, StringHttpMessageConverter(StandardCharsets.UTF_8))
+            }
+
+            val response = restTemplate.exchange(apiUrl, HttpMethod.POST, entity, String::class.java)
+
+            if (response.statusCode == HttpStatus.OK) {
+                successCount++
+                fcmNotificationRepository.save(
+                    FcmNotification(
+                        body = fcmSendDto.body,
+                        memberFcmToken = tokenEntity,
+                        )
+                )
+            }
+        }
+
+        return FcmSendResponse.of(fcmSendDto, successCount)
+    }
+
 }
