@@ -161,6 +161,30 @@ class FriendService(
         }
     }
 
+    @Transactional
+    fun removeFriend(friendEmail: String) {
+        val me = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+        val friend = memberRepository.findByEmail(friendEmail)
+            ?: throw IllegalArgumentException("Member with id $friendEmail not found")
+
+        val relation = friendRepository.findByFromMemberAndToMember(me, friend)
+        val reverseRelation = friendRepository.findByFromMemberAndToMember(friend, me)
+
+        if (relation == null && reverseRelation == null) {
+            throw FriendNotFoundException("친구 관계가 존재하지 않습니다.")
+        }
+
+        if ((relation?.friendStatus == FriendStatus.ACCEPTED) ||
+            (reverseRelation?.friendStatus == FriendStatus.ACCEPTED)
+        ) {
+            relation?.let { friendRepository.delete(it) }
+            reverseRelation?.let { friendRepository.delete(it) }
+        } else {
+            throw FriendAccessDeniedException("친구 상태가 아니므로 삭제할 수 없습니다.")
+        }
+    }
+
     fun getFriends(cursor: Long?, limit: Int = 5): CursorPageResDto<FriendSimpleResDto, Long> {
         val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
             ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")

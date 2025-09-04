@@ -55,6 +55,16 @@ class FriendController(
         )
     }
 
+    @DeleteMapping
+    override fun removeFriend(@RequestParam email: String): RspTemplate<Nothing?> {
+        friendService.removeFriend(email)
+        return RspTemplate(
+            httpStatus = HttpStatus.OK,
+            message = "친구 관계를 삭제했습니다.",
+            data = null
+        )
+    }
+
     @GetMapping("/received")
     override fun getReceivedFriendRequests(
         @RequestParam(required = false) cursor: Long?,

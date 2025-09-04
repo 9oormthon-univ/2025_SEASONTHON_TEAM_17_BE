@@ -168,6 +168,32 @@ interface FriendDocs {
     ): RspTemplate<Nothing?>
 
     @Operation(
+        summary = "친구 삭제",
+        description = "현재 로그인한 사용자가 친구 관계를 해제합니다."
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "친구 삭제 성공",
+        content = [Content(
+            mediaType = "application/json",
+            schema = Schema(implementation = RspTemplate::class),
+            examples = [ExampleObject(
+                value = """
+                {
+                  "statusCode": 200,
+                  "message": "친구 관계를 삭제했습니다.",
+                  "data": null
+                }
+                """
+            )]
+        )]
+    )
+    @DeleteMapping
+    fun removeFriend(
+        @Parameter(description = "삭제할 친구 이메일") @RequestParam email: String
+    ): RspTemplate<Nothing?>
+
+    @Operation(
         summary = "받은 친구 요청 목록 조회",
         description = "현재 로그인한 사용자가 받은 친구 요청 목록을 커서 기반으로 조회합니다."
     )
