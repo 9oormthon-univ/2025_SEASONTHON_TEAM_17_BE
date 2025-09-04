@@ -36,12 +36,15 @@ jobs:
           echo "${{ secrets.APPLICATION_DEV }}" > ./application-dev.yml
         shell: bash
 
-      - name: make fcm.json
+      - name: make firebase dir
+        run: mkdir -p src/main/resources/firebase
+      
+      - name: Make fcm.json
         uses: jsdaniell/create-json@v1.2.2
         with:
           json: ${{ secrets.FIREBASE_JSON }}
           dir: src/main/resources/firebase
-          name: ${{ secrets.FCM_FILE_NAME }}    
+          name: ${{ secrets.FCM_FILE_NAME }}   
           
       - name: make .env
         run: |
