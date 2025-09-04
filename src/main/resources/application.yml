@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: local
+    active: ${SPRING_PROFILE}
 
   datasource:
     url: ${spring.datasource.url}
@@ -21,4 +21,4 @@ management:
   endpoints:
     web:
       exposure:
-        include: ${HEALTH_CHECK_POINT}
+        include: ${management.endpoints.web.exposure.include}
