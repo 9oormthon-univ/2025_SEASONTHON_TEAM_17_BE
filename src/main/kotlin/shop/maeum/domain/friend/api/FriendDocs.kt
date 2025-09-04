@@ -309,29 +309,33 @@ interface FriendDocs {
 
     @Operation(
         summary = "친구 검색",
-        description = "이메일 또는 닉네임에 키워드가 포함된 회원을 검색합니다. 클라이언트에서 입력이 끝난 후 2초 정도 기다리고 호출해주세요.. 본인은 제외 조회됩니다."
+        description = "이메일 또는 닉네임에 키워드가 포함된 회원을 검색합니다. 클라이언트에서 입력이 끝난 후 2초 정도 기다리고 호출해주세요. 본인은 제외 조회됩니다."
     )
     @ApiResponse(
         responseCode = "200",
-        description = "친구 검색 성공",
+        description = "전체 회원 검색 성공",
         content = [Content(
             mediaType = "application/json",
-            schema = Schema(implementation = CursorPageResDto::class),
+            schema = Schema(implementation = RspTemplate::class),
             examples = [ExampleObject(
                 value = """
                 {
-                  "data": [
-                    {
-                      "memberId": "u123",
-                      "nickname": "newbie",
-                      "email": "newbie@example.com",
-                      "profileImageUrl": "https://cdn.maeum.shop/u123.png",
-                      "isFriend": false,
-                      "isRequested": true
-                    }
-                  ],
-                  "nextCursor": "u456",
-                  "hasNext": true
+                  "statusCode": 200,
+                  "message": "전체 회원 검색 성공",
+                  "data": {
+                    "data": [
+                      {
+                        "memberId": 123,
+                        "nickname": "newbie",
+                        "email": "newbie@example.com",
+                        "profileImageUrl": "https://cdn.maeum.shop/u123.png",
+                        "isFriend": false,
+                        "isRequested": true
+                      }
+                    ],
+                    "nextCursor": 456,
+                    "hasNext": true
+                  }
                 }
                 """
             )]
@@ -342,5 +346,122 @@ interface FriendDocs {
         @Parameter(description = "검색 키워드 (2자 이상)") @RequestParam keyword: String,
         @Parameter(description = "커서 ID") @RequestParam(required = false) cursor: Long?,
         @Parameter(description = "가져올 개수 (기본 5)") @RequestParam(defaultValue = "5") limit: Int
-    ): CursorPageResDto<FriendSearchResDto, String>
+    ): RspTemplate<CursorPageResDto<FriendSearchResDto, Long>>
+
+    @Operation(
+        summary = "내 친구 목록 검색",
+        description = "내 친구 목록에서 이메일 또는 닉네임에 키워드가 포함된 친구를 검색합니다."
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "내 친구 목록 검색 성공",
+        content = [Content(
+            mediaType = "application/json",
+            schema = Schema(implementation = RspTemplate::class),
+            examples = [ExampleObject(
+                value = """
+                {
+                  "statusCode": 200,
+                  "message": "내 친구 목록 검색 성공",
+                  "data": {
+                    "data": [
+                      {
+                        "memberId": 3,
+                        "nickname": "bestie",
+                        "email": "bestie@example.com",
+                        "profileImageUrl": "https://cdn.maeum.shop/f3.png"
+                      }
+                    ],
+                    "nextCursor": null,
+                    "hasNext": false
+                  }
+                }
+                """
+            )]
+        )]
+    )
+    @GetMapping("/search/my-friends")
+    fun searchMyFriends(
+        @Parameter(description = "검색 키워드") @RequestParam keyword: String,
+        @Parameter(description = "커서 ID") @RequestParam(required = false) cursor: Long?,
+        @Parameter(description = "가져올 개수 (기본 5)") @RequestParam(defaultValue = "5") limit: Int
+    ): RspTemplate<CursorPageResDto<FriendSimpleResDto, Long>>
+
+    @Operation(
+        summary = "보낸 친구 요청 목록 검색",
+        description = "보낸 친구 요청 목록에서 이메일 또는 닉네임에 키워드가 포함된 요청을 검색합니다."
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "보낸 친구 요청 목록 검색 성공",
+        content = [Content(
+            mediaType = "application/json",
+            schema = Schema(implementation = RspTemplate::class),
+            examples = [ExampleObject(
+                value = """
+                {
+                  "statusCode": 200,
+                  "message": "보낸 친구 요청 목록 검색 성공",
+                  "data": {
+                    "data": [
+                      {
+                        "memberId": 2,
+                        "nickname": "friend2",
+                        "email": "friend2@example.com",
+                        "profileImageUrl": "https://cdn.maeum.shop/f2.png"
+                      }
+                    ],
+                    "nextCursor": 200,
+                    "hasNext": false
+                  }
+                }
+                """
+            )]
+        )]
+    )
+    @GetMapping("/search/sent")
+    fun searchSentRequests(
+        @Parameter(description = "검색 키워드") @RequestParam keyword: String,
+        @Parameter(description = "커서 ID") @RequestParam(required = false) cursor: Long?,
+        @Parameter(description = "가져올 개수 (기본 5)") @RequestParam(defaultValue = "5") limit: Int
+    ): RspTemplate<CursorPageResDto<FriendSimpleResDto, Long>>
+
+    @Operation(
+        summary = "받은 친구 요청 목록 검색",
+        description = "받은 친구 요청 목록에서 이메일 또는 닉네임에 키워드가 포함된 요청을 검색합니다."
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "받은 친구 요청 목록 검색 성공",
+        content = [Content(
+            mediaType = "application/json",
+            schema = Schema(implementation = RspTemplate::class),
+            examples = [ExampleObject(
+                value = """
+                {
+                  "statusCode": 200,
+                  "message": "받은 친구 요청 목록 검색 성공",
+                  "data": {
+                    "data": [
+                      {
+                        "memberId": 1,
+                        "nickname": "friend1",
+                        "email": "friend1@example.com",
+                        "profileImageUrl": "https://cdn.maeum.shop/f1.png"
+                      }
+                    ],
+                    "nextCursor": 100,
+                    "hasNext": true
+                  }
+                }
+                """
+            )]
+        )]
+    )
+    @GetMapping("/search/received")
+    fun searchReceivedRequests(
+        @Parameter(description = "검색 키워드") @RequestParam keyword: String,
+        @Parameter(description = "커서 ID") @RequestParam(required = false) cursor: Long?,
+        @Parameter(description = "가져올 개수 (기본 5)") @RequestParam(defaultValue = "5") limit: Int
+    ): RspTemplate<CursorPageResDto<FriendSimpleResDto, Long>>
 }
