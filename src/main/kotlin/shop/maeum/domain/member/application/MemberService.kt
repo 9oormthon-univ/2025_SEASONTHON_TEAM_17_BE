@@ -14,4 +14,9 @@ class MemberService (
         // TODO: 임시 예외처리 -> 세부 예외처리 필요
         return memberRepository.findByEmail(email)?: throw IllegalArgumentException("Member with email $email not found")
     }
+
+    @Transactional
+    fun saveMember(member: Member): Member
+    = memberRepository.save(member)
+
 }

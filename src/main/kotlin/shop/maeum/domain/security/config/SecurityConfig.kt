@@ -11,7 +11,6 @@ import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
-import shop.maeum.domain.member.entity.MemberRole
 import shop.maeum.domain.security.filter.JwtAuthenticationTokenFilter
 
 @Configuration
@@ -36,8 +35,6 @@ class SecurityConfig(
                 it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }.authorizeHttpRequests {
                 it
-                    .requestMatchers("/actuator/**")
-                    .hasRole(MemberRole.Admin.value)
                     .requestMatchers(HttpMethod.OPTIONS, "/**")
                     .permitAll()
                     .requestMatchers(
