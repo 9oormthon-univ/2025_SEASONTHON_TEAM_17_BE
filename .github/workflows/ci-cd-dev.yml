@@ -45,10 +45,6 @@ jobs:
           json: ${{ secrets.FIREBASE_JSON }}
           dir: src/main/resources/firebase
           name: ${{ secrets.FCM_FILE_NAME }}   
-          
-      - name: make .env
-        run: |
-          echo "${{ secrets.ENV }}" > .env
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
