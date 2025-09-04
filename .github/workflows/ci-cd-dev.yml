@@ -38,10 +38,11 @@ jobs:
 
       - name: make fcm.json
         uses: jsdaniell/create-json@v1.2.2
+        env:
+          FCM_FILE: ${{ secrets.FCM_FILE_NAME }}
         with:
           json: ${{ secrets.FIREBASE_JSON }}
-          dir: 'src/main/resources/firebase/'
-          file: 'widuy-875a5-firebase-adminsdk-fbsvc-56a2333f0b.json'
+          dir: ${{ format('src/main/resources/firebase/{}', env.FCM_FILE) }}      
           
       - name: make .env
         run: |
