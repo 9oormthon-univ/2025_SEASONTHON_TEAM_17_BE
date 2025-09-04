@@ -72,7 +72,7 @@ jobs:
           COMPOSE: "/home/ec2-user/compose/docker-compose-dev.yaml"
         with:
           host: ${{secrets.AWS_EC2_DEV_HOST}}
-          username: ec2-user
+          username: ubuntu
           key: ${{secrets.AWS_EC2_DEV_PRIVATE_KEY}}
           port: 22
           envs: APP, COMPOSE
