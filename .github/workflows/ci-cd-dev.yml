@@ -69,7 +69,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.0
         env:
           APP: "maeum-dev"
-          COMPOSE: "/home/ec2-user/compose/docker-compose-dev.yaml"
+          COMPOSE: "/home/ubuntu/compose/docker-compose-dev.yml"
         with:
           host: ${{secrets.AWS_EC2_DEV_HOST}}
           username: ubuntu
