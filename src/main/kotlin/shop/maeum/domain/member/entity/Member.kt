@@ -22,10 +22,10 @@ class Member (
     @GeneratedValue(strategy = GenerationType.UUID)
     val id : String?,
 
-    @Column(name = "member_email")
+    @Column(name = "member_email", unique = true)
     val email : String,
 
-    @Column(name = "member_nickname")
+    @Column(name = "member_nickname", unique = true)
     var nickname: String,
 
     @Column(name = "member_profile_path")
@@ -50,4 +50,23 @@ class Member (
     @Column(name = "deleted_at")
     var deletedAt: LocalDateTime? = null
 
-): BaseEntity()
+): BaseEntity() {
+    companion object {
+        fun of(
+            email: String,
+            nickname: String,
+            profilePath: String?
+        ): Member {
+            return Member(
+                id = null,
+                email = email,
+                nickname = nickname,
+                profilePath = profilePath,
+                socialAccount = SocialAccount.KAKAO,
+                memberRole = MemberRole.Member,
+                privacy = PrivacySetting.PUBLIC,
+                status = Status.ACTIVE,
+            )
+        }
+    }
+}

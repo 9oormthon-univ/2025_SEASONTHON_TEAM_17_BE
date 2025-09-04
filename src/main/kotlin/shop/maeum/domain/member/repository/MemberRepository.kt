@@ -21,4 +21,7 @@ interface MemberRepository : JpaRepository<Member, String> {
         @Param("limit") limit: Int
     ): List<Member>
 
+    fun existsByNickname(nickname: String): Boolean
+    fun existsByEmail(email: String): Boolean
+
 }
