@@ -32,7 +32,6 @@ jobs:
       - name: make application-dev.yml & select profile
         run: |
           cd ./src/main/resources/
-          export SPRING_PROFILE=dev
           echo "${{ secrets.APPLICATION_DEV }}" > ./application-dev.yml
         shell: bash
 
