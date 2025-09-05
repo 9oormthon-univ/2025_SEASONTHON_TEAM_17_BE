@@ -74,5 +74,5 @@ jobs:
           script_stop: true
           script: |
             docker-compose -f $COMPOSE down
-            docker pull ${{ secrets.DOCKER_ID }}/maeumon:dev
+            docker pull ${{ secrets.DOCKER_ID }}/maeum:dev
             docker-compose -f $COMPOSE up -d
