@@ -47,3 +47,6 @@ src/**/application-local.yml
 
 src/main/resources/firebase/
 *.json
+
+### docker-compose ###
+docker-compose-dev.yml
