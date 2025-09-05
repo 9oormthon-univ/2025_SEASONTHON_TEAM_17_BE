@@ -9,7 +9,8 @@ data class WriteDiaryResDto(
     val title: String,
     val content: String,
     val privacySetting: PrivacySetting,
-    val feedback: String,
+    val feedbackTitle: String,
+    val feedbackContent: String,
     val emotions: List<EmotionType> 
 ) {
     companion object {
@@ -19,7 +20,8 @@ data class WriteDiaryResDto(
                 title = diary.title,
                 content = diary.content,
                 privacySetting = diary.privacySetting,
-                feedback = diary.feedback,
+                feedbackTitle = diary.feedbackTitle,
+                feedbackContent = diary.feedbackContent,
                 emotions = diary.emotions.map { it.emotionType }
             )
         }

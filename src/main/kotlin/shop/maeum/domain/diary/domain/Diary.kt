@@ -30,8 +30,11 @@ class Diary(
     @Column(name = "privacy_setting", nullable = false)
     val privacySetting: PrivacySetting,
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    val feedback: String,
+    @Column(nullable = false)
+    val feedbackTitle: String,
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    val feedbackContent: String,
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
