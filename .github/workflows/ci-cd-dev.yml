@@ -74,5 +74,7 @@ jobs:
           script_stop: true
           script: |
             docker-compose -f $COMPOSE down
+            docker container prune -f
+            docker image prune -af
             docker pull ${{ secrets.DOCKER_ID }}/maeum:dev
             docker-compose -f $COMPOSE up -d
