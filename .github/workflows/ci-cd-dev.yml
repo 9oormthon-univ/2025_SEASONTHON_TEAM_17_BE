@@ -58,8 +58,8 @@ jobs:
       - name: Docker build & Push
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_ID }}" --password-stdin
-          docker build -t ${{ secrets.DOCKER_ID }}/maeumon:dev .
-          docker push ${{ secrets.DOCKER_ID }}/maeumon:dev
+          docker build -t ${{ secrets.DOCKER_ID }}/maeum:dev .
+          docker push ${{ secrets.DOCKER_ID }}/maeum:dev
 
       - name: Deploy images with Docker compose
         uses: appleboy/ssh-action@v1.0.0
