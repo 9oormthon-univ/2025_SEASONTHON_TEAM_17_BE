@@ -1,6 +1,7 @@
 spring:
   profiles:
-    active: ${SPRING_PROFILE}
+    active: ${SPRING_PROFILE:local}
+
 
   datasource:
     url: ${spring.datasource.url}
