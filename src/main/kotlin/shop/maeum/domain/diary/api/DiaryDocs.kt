@@ -338,4 +338,35 @@ interface DiaryDocs {
     @GetMapping("/today")
     fun hasDiaryToday(): RspTemplate<DiaryTodayResDto>
 
+    @Operation(
+        summary = "일기 공개/비공개 상태 토글",
+        description = "자신이 작성한 일기의 공개 상태를 토글합니다. 상태가 PUBLIC이면 PRIVATE로, PRIVATE면 PUBLIC으로 변경됩니다. 변경된 상태는 응답으로 반환됩니다.",
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "공개 상태 토글 성공",
+        content = [Content(
+            mediaType = "application/json",
+            schema = Schema(implementation = RspTemplate::class),
+            examples = [ExampleObject(
+                name = "공개 상태 토글 예시",
+                value = """
+            {
+              "statusCode": 200,
+              "message": "일기 공개 상태 변경 성공",
+              "data": {
+                "diaryId": 15,
+                "privacySetting": "PRIVATE"
+              }
+            }
+            """
+            )]
+        )]
+    )
+    @PatchMapping("/{diaryId}")
+    fun togglePrivacySetting(
+        @Parameter(description = "공개 상태를 변경할 일기의 ID")
+        @PathVariable diaryId: Long
+    ): RspTemplate<PrivacySettingResDto>
+
 }

@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import shop.maeum.domain.diary.api.dto.response.*
+import shop.maeum.domain.diary.domain.PrivacySetting
 import shop.maeum.domain.diary.exception.DiaryNotFoundException
 import shop.maeum.domain.emotion.domain.Emotion
 import shop.maeum.domain.emotion.domain.EmotionType
@@ -197,5 +198,22 @@ class DiaryService(
         } else {
             DiaryTodayResDto(written = false)
         }
+    }
+
+    @Transactional
+    fun togglePrivacySetting(diaryId: Long): PrivacySettingResDto {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member not found")
+
+        val diary = diaryRepository.findByIdOrNull(diaryId)
+            ?: throw DiaryNotFoundException()
+
+        if (diary.member != member) {
+            throw IllegalArgumentException("본인의 일기만 수정할 수 있습니다.")
+        }
+
+        diary.togglePrivacy()
+
+        return PrivacySettingResDto.fromEntity(diary)
     }
 }

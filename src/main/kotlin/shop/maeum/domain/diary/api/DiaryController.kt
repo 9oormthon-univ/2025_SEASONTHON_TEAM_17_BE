@@ -96,4 +96,10 @@ class DiaryController(
             data = result
         )
     }
+
+    @PatchMapping("/{diaryId}")
+    override fun togglePrivacySetting(@PathVariable diaryId: Long): RspTemplate<PrivacySettingResDto> {
+        val result = diaryService.togglePrivacySetting(diaryId)
+        return RspTemplate(HttpStatus.OK, "일기 공개 상태 변경 성공", result)
+    }
 }
