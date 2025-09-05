@@ -107,15 +107,25 @@ class DiaryService(
         return Triple(emotions, feedbackTitle, feedbackContent)
     }
 
-    fun getDiaries(cursor: Long?, limit: Int = 3): CursorPageResDto<DiarySummaryResDto, Long> {
-        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
-            ?: throw IllegalArgumentException("Member with email ${securityUtil.getCurrentEmail()} not found")
+    fun getDiaries(email: String, cursor: Long?, limit: Int = 3): CursorPageResDto<DiarySummaryResDto, Long> {
+        val currentMember = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Current member not found")
 
-        val diaries = diaryRepository.findAllByMemberWithCursor(
-            memberId = member.id!!,
-            cursor = cursor,
-            pageable = PageRequest.of(0, limit + 1)
-        )
+        val isOwner = currentMember.email == email
+
+        val diaries = if (isOwner) {
+            diaryRepository.findAllByMemberWithCursor(
+                memberId = currentMember.id!!,
+                cursor = cursor,
+                pageable = PageRequest.of(0, limit + 1)
+            )
+        } else {
+            diaryRepository.findAllPublicByMemberEmailWithCursor(
+                email = email,
+                cursor = cursor,
+                pageable = PageRequest.of(0, limit + 1)
+            )
+        }
 
         val hasNext = diaries.size > limit
         val sliced = diaries.take(limit)

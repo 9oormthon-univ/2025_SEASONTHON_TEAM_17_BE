@@ -127,9 +127,10 @@ interface DiaryDocs {
         @PathVariable diaryId: Long
     ): RspTemplate<DiaryDetailResDto>
 
+
     @Operation(
         summary = "일기 목록 조회 (커서 기반)",
-        description = "현재 로그인한 사용자의 일기를 최신순으로 커서 기반 페이징하여 조회합니다. 기본 limit=3"
+        description = "특정 사용자의 일기를 최신순으로 커서 기반 페이징하여 조회합니다. 로그인한 사용자는 모든 일기 조회 가능, 타인은 PUBLIC만 조회 가능합니다. 기본 limit=3"
     )
     @ApiResponse(
         responseCode = "200",
@@ -163,9 +164,14 @@ interface DiaryDocs {
             )]
         )]
     )
+    @GetMapping
     fun getDiaries(
+        @Parameter(description = "조회할 사용자 이메일")
+        @RequestParam email: String,
+
         @Parameter(description = "마지막으로 조회한 일기의 ID (없으면 첫 페이지)")
         @RequestParam(required = false) cursor: Long?,
+
         @Parameter(description = "가져올 일기의 개수 (기본값 3)")
         @RequestParam(defaultValue = "3") limit: Int
     ): RspTemplate<CursorPageResDto<DiarySummaryResDto, Long>>
