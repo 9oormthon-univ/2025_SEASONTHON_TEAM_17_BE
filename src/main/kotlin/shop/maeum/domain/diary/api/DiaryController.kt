@@ -29,9 +29,9 @@ class DiaryController(
     }
 
     override fun getDiaries(
-        email: String,
-        cursor: Long?,
-        limit: Int
+        @RequestParam email: String,
+        @RequestParam(required = false) cursor: Long?,
+        @RequestParam(defaultValue = "3") limit: Int
     ): RspTemplate<CursorPageResDto<DiarySummaryResDto, Long>> {
         val diaries = diaryService.getDiaries(email, cursor, limit)
         return RspTemplate(HttpStatus.OK, "일기 목록 조회 성공", diaries)
