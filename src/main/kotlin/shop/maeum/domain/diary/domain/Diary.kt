@@ -28,10 +28,13 @@ class Diary(
 
     @Enumerated(EnumType.STRING)
     @Column(name = "privacy_setting", nullable = false)
-    val privacySetting: PrivacySetting,
+    var privacySetting: PrivacySetting,
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    val feedback: String,
+    @Column(nullable = false)
+    val feedbackTitle: String,
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    val feedbackContent: String,
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -44,4 +47,11 @@ class Diary(
     @JoinColumn(name = "member_id", nullable = false)
     val member: Member
 
-) : BaseEntity()
+) : BaseEntity() {
+    fun togglePrivacy() {
+        this.privacySetting = when (this.privacySetting) {
+            PrivacySetting.PUBLIC -> PrivacySetting.PRIVACY
+            PrivacySetting.PRIVACY -> PrivacySetting.PUBLIC
+        }
+    }
+}

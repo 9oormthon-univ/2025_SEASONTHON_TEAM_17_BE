@@ -34,4 +34,17 @@ interface DiaryRepository : JpaRepository<Diary, Long> {
         pageable: Pageable
     ): List<Diary>
 
+    @Query("""
+    SELECT d
+    FROM Diary d
+    WHERE d.member.email = :email
+      AND d.privacySetting = 'PUBLIC'
+      AND (:cursor IS NULL OR d.id < :cursor)
+    ORDER BY d.id DESC
+""")
+    fun findAllPublicByMemberEmailWithCursor(
+        @Param("email") email: String,
+        @Param("cursor") cursor: Long?,
+        pageable: Pageable
+    ): List<Diary>
 }

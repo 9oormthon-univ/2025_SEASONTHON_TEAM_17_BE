@@ -28,12 +28,12 @@ class DiaryController(
         )
     }
 
-    @GetMapping
     override fun getDiaries(
+        @RequestParam email: String,
         @RequestParam(required = false) cursor: Long?,
         @RequestParam(defaultValue = "3") limit: Int
     ): RspTemplate<CursorPageResDto<DiarySummaryResDto, Long>> {
-        val diaries = diaryService.getDiaries(cursor, limit)
+        val diaries = diaryService.getDiaries(email, cursor, limit)
         return RspTemplate(HttpStatus.OK, "일기 목록 조회 성공", diaries)
     }
 
@@ -95,5 +95,11 @@ class DiaryController(
             message = if (result.written) "오늘 작성한 일기가 있습니다." else "오늘 작성한 일기가 없습니다.",
             data = result
         )
+    }
+
+    @PatchMapping("/{diaryId}")
+    override fun togglePrivacySetting(@PathVariable diaryId: Long): RspTemplate<PrivacySettingResDto> {
+        val result = diaryService.togglePrivacySetting(diaryId)
+        return RspTemplate(HttpStatus.OK, "일기 공개 상태 변경 성공", result)
     }
 }

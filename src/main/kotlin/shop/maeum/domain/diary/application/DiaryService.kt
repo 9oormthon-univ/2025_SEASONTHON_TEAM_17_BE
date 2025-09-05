@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import shop.maeum.domain.diary.api.dto.response.*
+import shop.maeum.domain.diary.domain.PrivacySetting
 import shop.maeum.domain.diary.exception.DiaryNotFoundException
 import shop.maeum.domain.emotion.domain.Emotion
 import shop.maeum.domain.emotion.domain.EmotionType
@@ -55,13 +56,14 @@ class DiaryService(
 
         log.info("🧠 AI 응답 원문:\n$aiRawResponse")
 
-        val (emotionNames, feedback) = parseAiResponse(aiRawResponse)
+        val (emotionNames, feedbackTitle, feedbackContent) = parseAiResponse(aiRawResponse)
 
         val diary = Diary(
             title = writeDiaryReqDto.title,
             content = writeDiaryReqDto.content,
             privacySetting = writeDiaryReqDto.privacySetting,
-            feedback = feedback,
+            feedbackTitle = feedbackTitle,
+            feedbackContent = feedbackContent,
             status = Status.ACTIVE,
             member = member
         )
@@ -79,9 +81,10 @@ class DiaryService(
         return WriteDiaryResDto.fromEntity(diary)
     }
 
-    private fun parseAiResponse(raw: String): Pair<List<String>, String> {
+    private fun parseAiResponse(raw: String): Triple<List<String>, String, String> {
         val emotionRegex = Regex("""감정:\s*\[(.*?)\]""")
-        val feedbackRegex = Regex("""피드백:\s*(.*)""")
+        val feedbackTitleRegex = Regex("""피드백 제목:\s*(.*?)\s*피드백 내용:""")
+        val feedbackContentRegex = Regex("""피드백 내용:\s*(.*)""", RegexOption.DOT_MATCHES_ALL)
 
         val emotions = emotionRegex.find(raw)
             ?.groups?.get(1)
@@ -90,24 +93,40 @@ class DiaryService(
             ?.map { it.trim() }
             ?: emptyList()
 
-        val feedback = feedbackRegex.find(raw)
+        val feedbackTitle = feedbackTitleRegex.find(raw)
             ?.groups?.get(1)
             ?.value
             ?.trim()
             ?: ""
 
-        return emotions to feedback
+        val feedbackContent = feedbackContentRegex.find(raw)
+            ?.groups?.get(1)
+            ?.value
+            ?.trim()
+            ?: ""
+
+        return Triple(emotions, feedbackTitle, feedbackContent)
     }
 
-    fun getDiaries(cursor: Long?, limit: Int = 3): CursorPageResDto<DiarySummaryResDto, Long> {
-        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
-            ?: throw IllegalArgumentException("Member with email ${securityUtil.getCurrentEmail()} not found")
+    fun getDiaries(email: String, cursor: Long?, limit: Int = 3): CursorPageResDto<DiarySummaryResDto, Long> {
+        val currentMember = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Current member not found")
 
-        val diaries = diaryRepository.findAllByMemberWithCursor(
-            memberId = member.id!!,
-            cursor = cursor,
-            pageable = PageRequest.of(0, limit + 1)
-        )
+        val isOwner = currentMember.email == email
+
+        val diaries = if (isOwner) {
+            diaryRepository.findAllByMemberWithCursor(
+                memberId = currentMember.id!!,
+                cursor = cursor,
+                pageable = PageRequest.of(0, limit + 1)
+            )
+        } else {
+            diaryRepository.findAllPublicByMemberEmailWithCursor(
+                email = email,
+                cursor = cursor,
+                pageable = PageRequest.of(0, limit + 1)
+            )
+        }
 
         val hasNext = diaries.size > limit
         val sliced = diaries.take(limit)
@@ -179,5 +198,22 @@ class DiaryService(
         } else {
             DiaryTodayResDto(written = false)
         }
+    }
+
+    @Transactional
+    fun togglePrivacySetting(diaryId: Long): PrivacySettingResDto {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member not found")
+
+        val diary = diaryRepository.findByIdOrNull(diaryId)
+            ?: throw DiaryNotFoundException()
+
+        if (diary.member != member) {
+            throw IllegalArgumentException("본인의 일기만 수정할 수 있습니다.")
+        }
+
+        diary.togglePrivacy()
+
+        return PrivacySettingResDto.fromEntity(diary)
     }
 }

@@ -8,7 +8,8 @@ data class DiaryDetailResDto(
     val title: String,
     val content: String,
     val privacySetting: String,
-    val feedback: String,
+    val feedbackTitle: String,
+    val feedbackContent: String,
     val emotions: List<EmotionCountDto>
 ) {
     companion object {
@@ -26,7 +27,8 @@ data class DiaryDetailResDto(
                 title = diary.title,
                 content = diary.content,
                 privacySetting = diary.privacySetting.name,
-                feedback = diary.feedback,
+                feedbackTitle = diary.feedbackTitle,
+                feedbackContent = diary.feedbackContent,
                 emotions = emotionCounts
             )
         }
