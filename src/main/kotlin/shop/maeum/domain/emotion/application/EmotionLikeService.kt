@@ -7,7 +7,9 @@ import org.springframework.transaction.annotation.Transactional
 import shop.maeum.domain.diary.repository.EmotionLikeRepository
 import shop.maeum.domain.diary.repository.EmotionRepository
 import shop.maeum.domain.emotion.domain.EmotionLike
+import shop.maeum.domain.emotion.domain.EmotionType
 import shop.maeum.domain.emotion.exception.EmotionNotFoundException
+import shop.maeum.domain.emotion_analysis.application.dto.EmotionDataDto
 import shop.maeum.domain.fcm.event.emotion.EmotionLikedEvent
 import shop.maeum.domain.member.repository.MemberRepository
 import shop.maeum.domain.security.util.SecurityUtil
@@ -60,6 +62,17 @@ class EmotionLikeService(
                     likerNickname = member.nickname,
                     emotionType = targetEmotion.emotionType
                 )
+            )
+        }
+    }
+
+    fun getEmotionLikesByFriends(emotionList: List<EmotionDataDto>) : List<Triple<Long, EmotionType, Int>> {
+        return emotionList.map { emotion ->
+            val likes = emotionRepository.findEmotionWithLikeCount(emotion.emotionId)
+            Triple(
+                emotion.emotionId!!,
+                emotion.emotionType,
+                likes?: 0
             )
         }
     }

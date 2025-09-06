@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import shop.maeum.domain.diary.domain.Diary
+import shop.maeum.domain.member.entity.Member
 import java.time.LocalDateTime
 
 interface DiaryRepository : JpaRepository<Diary, Long> {
@@ -49,10 +50,26 @@ interface DiaryRepository : JpaRepository<Diary, Long> {
         pageable: Pageable
     ): List<Diary>
 
+
+    @Query("""
+        SELECT DISTINCT d FROM Diary d
+        LEFT JOIN FETCH d.emotions
+        WHERE d.member = :member
+        AND d.createdAt BETWEEN :start AND :end
+        """)
+    fun findByMemberAndDateBetween(
+        @Param("member") member: Member,
+        @Param("start") start: LocalDateTime,
+        @Param("end") end: LocalDateTime,
+        pageable: Pageable
+    ): List<Diary>
+
+
     @Modifying
     @Query("UPDATE Diary d SET d.createdAt = :createdAt WHERE d.id = :diaryId")
     fun updateCreatedAt(
         @Param("diaryId") diaryId: Long,
         @Param("createdAt") createdAt: LocalDateTime
     ): Int
+
 }

@@ -11,17 +11,17 @@ import shop.maeum.domain.diary.domain.repository.DiaryRepository
 import shop.maeum.global.entity.Status
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
-import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import shop.maeum.domain.diary.api.dto.response.*
-import shop.maeum.domain.diary.domain.PrivacySetting
 import shop.maeum.domain.diary.exception.DiaryNotFoundException
 import shop.maeum.domain.emotion.domain.Emotion
 import shop.maeum.domain.emotion.domain.EmotionType
+import shop.maeum.domain.emotion_analysis.application.dto.EmotionAnalysisDataDto
+import shop.maeum.domain.member.application.MemberService
+import shop.maeum.domain.member.entity.Member
 import shop.maeum.domain.member.repository.MemberRepository
 import shop.maeum.domain.security.util.SecurityUtil
 import shop.maeum.global.dto.CursorPageResDto
-import shop.maeum.global.dto.PageInfoResDto
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -35,7 +35,7 @@ class DiaryService(
     private val securityUtil: SecurityUtil,
 
     @Value("\${ai.prompt.diary-analysis}")
-    private val diaryAnalysisPrompt: String
+    private val diaryAnalysisPrompt: String,
 ) {
     private val log = LoggerFactory.getLogger(DiaryService::class.java)
 
@@ -265,4 +265,20 @@ class DiaryService(
 
         return PrivacySettingResDto.fromEntity(diary)
     }
+
+    // 분석에 필요한 다이어리 정보 조회
+    fun getWeeklyDiaries(member: Member, start: LocalDateTime, end: LocalDateTime): List<EmotionAnalysisDataDto> {
+
+        val diaryEntityList = diaryRepository.findByMemberAndDateBetween(
+            member = member,
+            start = start,
+            end = end,
+            pageable = PageRequest.of(0, 7)
+        )
+
+        return diaryEntityList.map { diary ->
+            EmotionAnalysisDataDto.fromDiary(diary)
+        }
+    }
+
 }

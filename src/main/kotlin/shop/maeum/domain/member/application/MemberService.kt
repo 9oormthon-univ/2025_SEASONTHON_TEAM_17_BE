@@ -25,6 +25,12 @@ class MemberService (
     fun saveMember(member: Member): Member
     = memberRepository.save(member)
 
+    fun findAllMember(): List<Member>
+    = memberRepository.findAll()
+
+    fun getById(id: String): Member {
+        return memberRepository.findById(id).orElseThrow { IllegalArgumentException("Member with id $id not found") }
+
     fun findMyPageInfo(email: String): MyPageInfoDto {
         val member = memberRepository.findByEmail(email)
         require(member?.status != Status.UN_ACTIVE) { "유효하지 않은 회원입니다." }
