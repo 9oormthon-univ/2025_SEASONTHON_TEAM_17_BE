@@ -212,15 +212,25 @@ class FriendService(
     }
 
     fun getReceivedFriendRequests(cursor: Long?, limit: Int = 5): CursorPageResDto<FriendSimpleResDto, Long> {
-        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
-            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+        val currentEmail = securityUtil.getCurrentEmail()
+        println("=== DEBUG: Current email = '$currentEmail'")
+        
+        val member = memberRepository.findByEmail(currentEmail)
+            ?: throw IllegalArgumentException("Member with id $currentEmail not found")
+            
+        println("=== DEBUG: Found member id = '${member.id}', email = '${member.email}'")
 
         val requests = friendRepository.findReceivedRequestsWithCursor(
-            member = member,
+            memberId = member.id!!,
             status = FriendStatus.REQUESTED,
             cursor = cursor,
             pageable = PageRequest.of(0, limit + 1)
         )
+        
+        println("=== DEBUG: Found ${requests.size} requests")
+        requests.forEach { 
+            println("=== DEBUG: Request from '${it.fromMember.id}' to '${it.toMember.id}', status: ${it.friendStatus}")
+        }
 
         val sliced = requests.take(limit)
         val hasNext = requests.size > limit

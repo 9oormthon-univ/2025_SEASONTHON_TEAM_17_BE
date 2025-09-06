@@ -26,15 +26,15 @@ interface FriendRepository : JpaRepository<Friend, Long> {
     ): List<Friend>
 
     @Query("""
-    SELECT f
-    FROM Friend f
-    WHERE f.toMember = :member
-      AND f.friendStatus = :status
-      AND (:cursor IS NULL OR f.id < :cursor)
-    ORDER BY f.id DESC
-""")
+      SELECT f
+      FROM Friend f
+      WHERE f.toMember.id = :memberId
+        AND f.friendStatus = :status
+        AND (:cursor IS NULL OR f.id < :cursor)
+      ORDER BY f.id DESC
+  """)
     fun findReceivedRequestsWithCursor(
-        @Param("member") member: Member,
+        @Param("memberId") memberId: String,
         @Param("status") status: FriendStatus,
         @Param("cursor") cursor: Long?,
         pageable: Pageable
