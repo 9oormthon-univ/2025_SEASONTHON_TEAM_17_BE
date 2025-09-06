@@ -1,5 +1,7 @@
 package shop.maeum.domain.diary.domain
 
+import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonManagedReference
 import jakarta.persistence.*
 import org.hibernate.annotations.SQLDelete
 import org.hibernate.annotations.Where
@@ -41,10 +43,12 @@ class Diary(
     var status: Status = Status.ACTIVE,
 
     @OneToMany(mappedBy = "diary", cascade = [CascadeType.ALL], orphanRemoval = true)
+    @JsonManagedReference
     val emotions: MutableList<Emotion> = mutableListOf(),
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)
+    @JsonIgnore
     val member: Member
 
 ) : BaseEntity() {

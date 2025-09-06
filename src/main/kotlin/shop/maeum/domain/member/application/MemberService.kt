@@ -19,4 +19,10 @@ class MemberService (
     fun saveMember(member: Member): Member
     = memberRepository.save(member)
 
+    fun findAllMember(): List<Member>
+    = memberRepository.findAll()
+
+    fun getById(id: String): Member {
+        return memberRepository.findById(id).orElseThrow { IllegalArgumentException("Member with id $id not found") }
+    }
 }
