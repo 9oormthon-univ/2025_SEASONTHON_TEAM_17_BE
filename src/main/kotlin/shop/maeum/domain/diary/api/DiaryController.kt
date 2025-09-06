@@ -4,6 +4,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 import shop.maeum.domain.diary.api.dto.request.WriteDiaryReqDto
+import shop.maeum.domain.diary.api.dto.request.WriteDiaryWithDateReqDto
 import shop.maeum.domain.diary.api.dto.response.*
 import shop.maeum.domain.diary.application.DiaryService
 import shop.maeum.global.dto.CursorPageResDto
@@ -24,6 +25,19 @@ class DiaryController(
             message = "일기가 성공적으로 작성되었습니다.",
             data = diaryService.writeDiary(
                 writeDiaryReqDto,
+            )
+        )
+    }
+
+    @PostMapping("/with-date")
+    override fun writeDiaryWithDate(
+        @RequestBody writeDiaryWithDateReqDto: WriteDiaryWithDateReqDto
+    ): RspTemplate<WriteDiaryResDto> {
+        return RspTemplate(
+            httpStatus = HttpStatus.CREATED,
+            message = "일기가 성공적으로 작성되었습니다.",
+            data = diaryService.writeDiaryWithDate(
+                writeDiaryWithDateReqDto,
             )
         )
     }
