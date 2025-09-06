@@ -9,6 +9,6 @@ class CorsConfig {
     var allowedOrigins: List<String> = emptyList()
     var allowedPaths: List<String> = emptyList()
     var allowedHeaders: List<String> = listOf("*")
-    var allowedMethods: List<String> = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
+    var allowedMethods: List<String> = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
 }
 
