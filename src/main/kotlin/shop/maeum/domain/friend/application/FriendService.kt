@@ -2,6 +2,7 @@ package shop.maeum.domain.friend.application
 
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import shop.maeum.domain.fcm.event.friend.FriendAcceptedEvent
@@ -254,34 +255,35 @@ class FriendService(
         )
     }
 
-    fun searchFriendWithCursor(
+    fun searchAllMembersWithCursor(
         keyword: String,
         cursor: Long?,
         limit: Int = 5
-    ): CursorPageResDto<FriendSearchResDto, Long> {
+    ): CursorPageResDto<FriendSearchResDto, String> {
         val me = memberRepository.findByEmail(securityUtil.getCurrentEmail())
             ?: throw IllegalArgumentException("Member with email ${securityUtil.getCurrentEmail()} not found")
 
-        val friends = friendRepository.searchFriendsWithCursor(
-            memberId = me.id!!,
+        val pageable = PageRequest.of(0, limit + 1, Sort.by("id").ascending())
+
+        val members = memberRepository.searchMembersWithCursor(
             keyword = keyword,
+            currentMemberId = me.id!!,
             cursor = cursor,
-            pageable = PageRequest.of(0, limit + 1)
+            pageable = pageable
         )
 
-        val sliced = friends.take(limit)
-        val hasNext = friends.size > limit
+        val sliced = members.take(limit)
+        val hasNext = members.size > limit
         val nextCursor = if (hasNext) sliced.last().id else null
 
-        val results = sliced.map { friend ->
-            val target = if (friend.fromMember == me) friend.toMember else friend.fromMember
+        val results = sliced.map {
             FriendSearchResDto(
-                memberId = target.id!!,
-                email = target.email,
-                nickname = target.nickname,
-                profileImageUrl = target.profilePath ?: "",
-                isFriend = friend.friendStatus == FriendStatus.ACCEPTED,
-                isRequested = friend.friendStatus == FriendStatus.REQUESTED
+                memberId = it.id!!,
+                email = it.email,
+                nickname = it.nickname,
+                profileImageUrl = it.profilePath ?: "",
+                isFriend = false,     // 친구 아님
+                isRequested = false   // 친구 요청 여부 미확인
             )
         }
 

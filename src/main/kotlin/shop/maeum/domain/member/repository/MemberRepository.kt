@@ -1,5 +1,6 @@
 package shop.maeum.domain.member.repository
 
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -10,15 +11,19 @@ interface MemberRepository : JpaRepository<Member, String> {
 
     @Query("""
     SELECT m FROM Member m
-    WHERE m.id > :cursor OR :cursor IS NULL
-      AND (LOWER(m.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
-        OR LOWER(m.nickname) LIKE LOWER(CONCAT('%', :keyword, '%')))
+    WHERE (:cursor IS NULL OR m.id > :cursor)
+      AND m.id <> :currentMemberId
+      AND (
+        LOWER(m.nickname) LIKE LOWER(CONCAT('%', :keyword, '%')) OR
+        LOWER(m.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+      )
     ORDER BY m.id ASC
 """)
-    fun searchByKeywordWithCursor(
+    fun searchMembersWithCursor(
         @Param("keyword") keyword: String,
+        @Param("currentMemberId") currentMemberId: String,
         @Param("cursor") cursor: Long?,
-        @Param("limit") limit: Int
+        pageable: Pageable
     ): List<Member>
 
     fun existsByNickname(nickname: String): Boolean

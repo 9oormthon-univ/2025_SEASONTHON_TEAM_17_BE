@@ -99,10 +99,14 @@ interface FriendRepository : JpaRepository<Friend, Long> {
     @Query("""
     SELECT f
     FROM Friend f
+    JOIN f.fromMember fm
     JOIN f.toMember tm
     WHERE f.friendStatus = 'REQUESTED'
-      AND f.fromMember.id = :memberId
-      AND (tm.nickname LIKE %:keyword% OR tm.email LIKE %:keyword%)
+      AND fm.id = :memberId
+      AND (
+        (CASE WHEN fm.id = :memberId THEN tm.nickname ELSE fm.nickname END) LIKE %:keyword%
+        OR (CASE WHEN fm.id = :memberId THEN tm.email ELSE fm.email END) LIKE %:keyword%
+      )
       AND (:cursor IS NULL OR f.id > :cursor)
     ORDER BY f.id ASC
 """)
@@ -117,9 +121,13 @@ interface FriendRepository : JpaRepository<Friend, Long> {
     SELECT f
     FROM Friend f
     JOIN f.fromMember fm
+    JOIN f.toMember tm
     WHERE f.friendStatus = 'REQUESTED'
-      AND f.toMember.id = :memberId
-      AND (fm.nickname LIKE %:keyword% OR fm.email LIKE %:keyword%)
+      AND tm.id = :memberId
+      AND (
+        (CASE WHEN fm.id = :memberId THEN tm.nickname ELSE fm.nickname END) LIKE %:keyword%
+        OR (CASE WHEN fm.id = :memberId THEN tm.email ELSE fm.email END) LIKE %:keyword%
+      )
       AND (:cursor IS NULL OR f.id > :cursor)
     ORDER BY f.id ASC
 """)
@@ -129,6 +137,5 @@ interface FriendRepository : JpaRepository<Friend, Long> {
         @Param("cursor") cursor: Long?,
         pageable: Pageable
     ): List<Friend>
-
 }
 

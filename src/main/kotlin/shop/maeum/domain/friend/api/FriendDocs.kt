@@ -346,7 +346,7 @@ interface FriendDocs {
         @Parameter(description = "검색 키워드 (2자 이상)") @RequestParam keyword: String,
         @Parameter(description = "커서 ID") @RequestParam(required = false) cursor: Long?,
         @Parameter(description = "가져올 개수 (기본 5)") @RequestParam(defaultValue = "5") limit: Int
-    ): RspTemplate<CursorPageResDto<FriendSearchResDto, Long>>
+    ): RspTemplate<CursorPageResDto<FriendSearchResDto, String>>
 
     @Operation(
         summary = "내 친구 목록 검색",
