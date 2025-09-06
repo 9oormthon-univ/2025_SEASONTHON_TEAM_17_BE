@@ -2,7 +2,7 @@ package shop.maeum.domain.member.application
 
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
-import shop.maeum.domain.member.dto.LoginInfoDto
+import shop.maeum.domain.member.api.dto.LoginInfoDto
 import shop.maeum.domain.member.entity.Member
 import shop.maeum.domain.member.util.NickNameGenerator
 import shop.maeum.domain.member.validator.MemberValidator
