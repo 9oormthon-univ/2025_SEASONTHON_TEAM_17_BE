@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import shop.maeum.domain.ai.application.AiService
 import shop.maeum.domain.diary.api.dto.request.WriteDiaryReqDto
+import shop.maeum.domain.diary.api.dto.request.WriteDiaryWithDateReqDto
 import shop.maeum.domain.diary.domain.Diary
 import shop.maeum.domain.diary.domain.repository.DiaryRepository
 import shop.maeum.global.entity.Status
@@ -79,6 +80,54 @@ class DiaryService(
         diaryRepository.save(diary)
 
         return WriteDiaryResDto.fromEntity(diary)
+    }
+
+    @Transactional
+    fun writeDiaryWithDate(writeDiaryWithDateReqDto: WriteDiaryWithDateReqDto): WriteDiaryResDto {
+        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+            ?: throw IllegalArgumentException("Member with id ${securityUtil.getCurrentEmail()} not found")
+
+        val fullPrompt = """
+        $diaryAnalysisPrompt
+
+        제목: ${writeDiaryWithDateReqDto.title}
+        내용: ${writeDiaryWithDateReqDto.content}
+    """.trimIndent()
+
+        log.info("📜 최종 AI 프롬프트:\n$fullPrompt")
+
+        val aiRawResponse = aiService.generate(fullPrompt)
+
+        log.info("🧠 AI 응답 원문:\n$aiRawResponse")
+
+        val (emotionNames, feedbackTitle, feedbackContent) = parseAiResponse(aiRawResponse)
+
+        val diary = Diary(
+            title = writeDiaryWithDateReqDto.title,
+            content = writeDiaryWithDateReqDto.content,
+            privacySetting = writeDiaryWithDateReqDto.privacySetting,
+            feedbackTitle = feedbackTitle,
+            feedbackContent = feedbackContent,
+            status = Status.ACTIVE,
+            member = member
+        )
+
+        val emotions = emotionNames.map { name ->
+            Emotion(
+                emotionType = EmotionType.valueOf(name),
+                diary = diary
+            )
+        }
+        diary.emotions.addAll(emotions)
+
+        val savedDiary = diaryRepository.save(diary)
+
+        val targetDateTime = writeDiaryWithDateReqDto.createdAt.atStartOfDay()
+        diaryRepository.updateCreatedAt(savedDiary.id!!, targetDateTime)
+
+        val finalDiary = diaryRepository.findById(savedDiary.id!!).get()
+
+        return WriteDiaryResDto.fromEntity(finalDiary)
     }
 
     private fun parseAiResponse(raw: String): Triple<List<String>, String, String> {

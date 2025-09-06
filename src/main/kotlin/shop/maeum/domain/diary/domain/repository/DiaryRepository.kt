@@ -3,6 +3,7 @@ package shop.maeum.domain.diary.domain.repository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import shop.maeum.domain.diary.domain.Diary
@@ -49,6 +50,7 @@ interface DiaryRepository : JpaRepository<Diary, Long> {
         pageable: Pageable
     ): List<Diary>
 
+
     @Query("""
         SELECT DISTINCT d FROM Diary d
         LEFT JOIN FETCH d.emotions
@@ -61,5 +63,13 @@ interface DiaryRepository : JpaRepository<Diary, Long> {
         @Param("end") end: LocalDateTime,
         pageable: Pageable
     ): List<Diary>
+
+
+    @Modifying
+    @Query("UPDATE Diary d SET d.createdAt = :createdAt WHERE d.id = :diaryId")
+    fun updateCreatedAt(
+        @Param("diaryId") diaryId: Long,
+        @Param("createdAt") createdAt: LocalDateTime
+    ): Int
 
 }

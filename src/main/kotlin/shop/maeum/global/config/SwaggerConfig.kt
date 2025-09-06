@@ -42,8 +42,8 @@ class SwaggerConfig(
             )
 
         val localServer = Server()
-            .url("https://maeum.shop")
-            .description("Local Server")
+            .url("https://dev.maeum.shop")
+            .description("Dev Server")
 
         return OpenAPI()
             .info(info)
