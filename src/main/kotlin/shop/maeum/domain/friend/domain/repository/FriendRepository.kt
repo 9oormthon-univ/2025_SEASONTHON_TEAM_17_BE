@@ -60,26 +60,6 @@ interface FriendRepository : JpaRepository<Friend, Long> {
     FROM Friend f
     JOIN f.fromMember fm
     JOIN f.toMember tm
-    WHERE (fm.id = :memberId OR tm.id = :memberId)
-      AND (
-        (CASE WHEN fm.id = :memberId THEN tm.nickname ELSE fm.nickname END) LIKE %:keyword%
-        OR (CASE WHEN fm.id = :memberId THEN tm.email ELSE fm.email END) LIKE %:keyword%
-      )
-      AND (:cursor IS NULL OR f.id > :cursor)
-    ORDER BY f.id ASC
-""")
-    fun searchFriendsWithCursor(
-        @Param("memberId") memberId: String,
-        @Param("keyword") keyword: String,
-        @Param("cursor") cursor: Long?,
-        pageable: Pageable
-    ): List<Friend>
-
-    @Query("""
-    SELECT f
-    FROM Friend f
-    JOIN f.fromMember fm
-    JOIN f.toMember tm
     WHERE f.friendStatus = 'ACCEPTED'
       AND (fm.id = :memberId OR tm.id = :memberId)
       AND (
@@ -104,8 +84,9 @@ interface FriendRepository : JpaRepository<Friend, Long> {
     WHERE f.friendStatus = 'REQUESTED'
       AND fm.id = :memberId
       AND (
-        (CASE WHEN fm.id = :memberId THEN tm.nickname ELSE fm.nickname END) LIKE %:keyword%
-        OR (CASE WHEN fm.id = :memberId THEN tm.email ELSE fm.email END) LIKE %:keyword%
+        :keyword = '' OR
+        tm.nickname LIKE CONCAT('%', :keyword, '%')
+        OR tm.email LIKE CONCAT('%', :keyword, '%')
       )
       AND (:cursor IS NULL OR f.id > :cursor)
     ORDER BY f.id ASC
@@ -125,8 +106,9 @@ interface FriendRepository : JpaRepository<Friend, Long> {
     WHERE f.friendStatus = 'REQUESTED'
       AND tm.id = :memberId
       AND (
-        (CASE WHEN fm.id = :memberId THEN tm.nickname ELSE fm.nickname END) LIKE %:keyword%
-        OR (CASE WHEN fm.id = :memberId THEN tm.email ELSE fm.email END) LIKE %:keyword%
+        :keyword = '' OR
+        fm.nickname LIKE CONCAT('%', :keyword, '%')
+        OR fm.email LIKE CONCAT('%', :keyword, '%')
       )
       AND (:cursor IS NULL OR f.id > :cursor)
     ORDER BY f.id ASC
