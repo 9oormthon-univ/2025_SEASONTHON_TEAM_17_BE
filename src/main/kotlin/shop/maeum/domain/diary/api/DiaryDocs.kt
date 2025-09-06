@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.*
 import shop.maeum.domain.diary.api.dto.request.WriteDiaryReqDto
+import shop.maeum.domain.diary.api.dto.request.WriteDiaryWithDateReqDto
 import shop.maeum.domain.diary.api.dto.response.*
 import shop.maeum.global.dto.CursorPageResDto
 import shop.maeum.global.template.RspTemplate
@@ -34,11 +35,13 @@ interface DiaryDocs {
                   "statusCode": 201,
                   "message": "일기가 성공적으로 작성되었습니다.",
                   "data": {
-                    "diaryId": 1,
+                    "id": 1,
                     "title": "오늘 하루",
                     "content": "정말 피곤한 하루였다.",
-                    "privacySetting": "PRIVATE",
-                    "feedback": "오늘 하루는 정말 피곤했겠네요. 충분한 휴식을 취하시길 바랍니다."
+                    "privacySetting": "PUBLIC",
+                    "feedbackTitle": "충분한 휴식이 필요해요",
+                    "feedbackContent": "오늘 하루는 정말 피곤했겠네요. 충분한 휴식을 취하시길 바랍니다.",
+                    "emotions": ["피곤함", "스트레스", "무기력", "걱정", "답답함"]
                   }
                 }
                 """
@@ -65,6 +68,59 @@ interface DiaryDocs {
             )]
         )
         writeDiaryReqDto: WriteDiaryReqDto
+    ): RspTemplate<WriteDiaryResDto>
+
+    @Operation(
+        summary = "특정 날짜로 일기 작성",
+        description = "특정 날짜를 지정하여 일기를 작성하고 AI 분석 결과(피드백, 감정 5개)를 함께 반환합니다."
+    )
+    @ApiResponse(
+        responseCode = "201",
+        description = "일기 작성 성공",
+        content = [Content(
+            mediaType = "application/json",
+            schema = Schema(implementation = RspTemplate::class),
+            examples = [ExampleObject(
+                name = "특정 날짜 일기 작성 성공 응답 예시",
+                value = """
+                {
+                  "statusCode": 201,
+                  "message": "일기가 성공적으로 작성되었습니다.",
+                  "data": {
+                    "id": 1,
+                    "title": "지난 주말 회고",
+                    "content": "지난 주말은 정말 의미 있는 시간이었다.",
+                    "privacySetting": "PUBLIC",
+                    "feedbackTitle": "소중한 시간을 보내셨군요",
+                    "feedbackContent": "의미 있는 시간을 보내셨군요. 그런 순간들이 정말 소중합니다.",
+                    "emotions": ["감사", "행복", "만족", "평온", "기쁨"]
+                  }
+                }
+                """
+            )]
+        )]
+    )
+    fun writeDiaryWithDate(
+        @RequestBody(
+            required = true,
+            description = "특정 날짜 일기 작성 요청 DTO",
+            content = [Content(
+                mediaType = "application/json",
+                schema = Schema(implementation = WriteDiaryWithDateReqDto::class),
+                examples = [ExampleObject(
+                    name = "특정 날짜 일기 작성 요청 예시",
+                    value = """
+                    {
+                      "title": "지난 주말 회고",
+                      "content": "지난 주말은 정말 의미 있는 시간이었다.",
+                      "privacySetting": "PUBLIC",
+                      "createdAt": "2025-09-01"
+                    }
+                    """
+                )]
+            )]
+        )
+        writeDiaryWithDateReqDto: WriteDiaryWithDateReqDto
     ): RspTemplate<WriteDiaryResDto>
 
     @Operation(

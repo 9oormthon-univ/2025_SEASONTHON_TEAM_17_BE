@@ -11,7 +11,7 @@ import java.time.LocalDateTime
 open class BaseEntity(
 
     @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false)
     open var createdAt: LocalDateTime? = null,
 
     @LastModifiedDate
