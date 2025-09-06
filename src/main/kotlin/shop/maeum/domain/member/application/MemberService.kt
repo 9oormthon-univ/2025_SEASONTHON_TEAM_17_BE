@@ -30,25 +30,27 @@ class MemberService (
 
     fun getById(id: String): Member {
         return memberRepository.findById(id).orElseThrow { IllegalArgumentException("Member with id $id not found") }
-
-    fun findMyPageInfo(email: String): MyPageInfoDto {
-        val member = memberRepository.findByEmail(email)
-        require(member?.status != Status.UN_ACTIVE) { "유효하지 않은 회원입니다." }
-        return MyPageInfoDto(
-            nickname = member!!.nickname,
-            profilePath = member.profilePath
-        )
     }
 
-    @Transactional
-    fun changeNickname(changeNicknameReqDto: ChangeNicknameReqDto): ChangeNicknameResDto {
-        val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
-            ?: throw IllegalArgumentException("Member not found")
-        require(member?.status != Status.UN_ACTIVE) { "유효하지 않은 회원입니다." }
-        require(!memberRepository.existsByNickname(changeNicknameReqDto.nickname)) { "이미 사용중인 닉네임입니다." }
-        member!!.nickname = changeNicknameReqDto.nickname
-        return ChangeNicknameResDto(
-            nickname = member.nickname,
-        )
+        fun findMyPageInfo(email: String): MyPageInfoDto {
+            val member = memberRepository.findByEmail(email)
+            require(member?.status != Status.UN_ACTIVE) { "유효하지 않은 회원입니다." }
+            return MyPageInfoDto(
+                nickname = member!!.nickname,
+                profilePath = member.profilePath
+            )
+        }
+
+        @Transactional
+        fun changeNickname(changeNicknameReqDto: ChangeNicknameReqDto): ChangeNicknameResDto {
+            val member = memberRepository.findByEmail(securityUtil.getCurrentEmail())
+                ?: throw IllegalArgumentException("Member not found")
+            require(member?.status != Status.UN_ACTIVE) { "유효하지 않은 회원입니다." }
+            require(!memberRepository.existsByNickname(changeNicknameReqDto.nickname)) { "이미 사용중인 닉네임입니다." }
+            member!!.nickname = changeNicknameReqDto.nickname
+            return ChangeNicknameResDto(
+                nickname = member.nickname,
+            )
+        }
     }
-}
+
