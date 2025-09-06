@@ -109,8 +109,8 @@ class FriendController(
         @RequestParam keyword: String,
         @RequestParam(required = false) cursor: Long?,
         @RequestParam(defaultValue = "5") limit: Int
-    ): RspTemplate<CursorPageResDto<FriendSearchResDto, Long>> {
-        val result = friendService.searchFriendWithCursor(keyword, cursor, limit)
+    ): RspTemplate<CursorPageResDto<FriendSearchResDto, String>> {
+        val result = friendService.searchAllMembersWithCursor(keyword, cursor, limit)
         return RspTemplate(HttpStatus.OK, "전체 회원 검색 성공", result)
     }
 
