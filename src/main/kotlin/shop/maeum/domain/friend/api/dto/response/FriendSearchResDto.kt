@@ -1,10 +1,11 @@
 package shop.maeum.domain.friend.api.dto.response
 
+import shop.maeum.domain.friend.domain.FriendRelationStatus
+
 data class FriendSearchResDto(
     val memberId: String,
-    val nickname: String,
     val email: String,
+    val nickname: String,
     val profileImageUrl: String,
-    val isFriend: Boolean,
-    val isRequested: Boolean
+    val relationStatus: FriendRelationStatus
 )

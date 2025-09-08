@@ -10,6 +10,7 @@ import shop.maeum.domain.fcm.event.friend.FriendRequestedEvent
 import shop.maeum.domain.friend.api.dto.response.FriendSearchResDto
 import shop.maeum.domain.friend.api.dto.response.FriendSimpleResDto
 import shop.maeum.domain.friend.domain.Friend
+import shop.maeum.domain.friend.domain.FriendRelationStatus
 import shop.maeum.domain.friend.domain.FriendStatus
 import shop.maeum.domain.friend.domain.repository.FriendRepository
 import shop.maeum.domain.friend.exception.FriendAccessDeniedException
@@ -287,23 +288,38 @@ class FriendService(
         val nextCursor = if (hasNext) sliced.last().id else null
 
         val results = sliced.map {
-            val isFriend = friendRepository.existsByFromMemberIdAndToMemberIdAndFriendStatus(
-                fromMemberId = me.id,
-                toMemberId = it.id!!,
-                friendStatus = FriendStatus.ACCEPTED
-            ) || friendRepository.existsByFromMemberIdAndToMemberIdAndFriendStatus(
-                fromMemberId = it.id,
-                toMemberId = me.id,
-                friendStatus = FriendStatus.ACCEPTED
-            )
+            val friendRelationStatus = when {
+                friendRepository.existsByFromMemberIdAndToMemberIdAndFriendStatus(
+                    fromMemberId = me.id,
+                    toMemberId = it.id!!,
+                    friendStatus = FriendStatus.ACCEPTED
+                ) || friendRepository.existsByFromMemberIdAndToMemberIdAndFriendStatus(
+                    fromMemberId = it.id,
+                    toMemberId = me.id,
+                    friendStatus = FriendStatus.ACCEPTED
+                ) -> FriendRelationStatus.FRIEND
+
+                friendRepository.existsByFromMemberIdAndToMemberIdAndFriendStatus(
+                    fromMemberId = me.id,
+                    toMemberId = it.id,
+                    friendStatus = FriendStatus.REQUESTED
+                ) -> FriendRelationStatus.REQUESTED_BY_ME
+
+                friendRepository.existsByFromMemberIdAndToMemberIdAndFriendStatus(
+                    fromMemberId = it.id,
+                    toMemberId = me.id,
+                    friendStatus = FriendStatus.REQUESTED
+                ) -> FriendRelationStatus.REQUESTED_BY_OTHER
+
+                else -> FriendRelationStatus.NONE
+            }
 
             FriendSearchResDto(
-                memberId = it.id!!,
+                memberId = it.id,
                 email = it.email,
                 nickname = it.nickname,
                 profileImageUrl = it.profilePath ?: "",
-                isFriend = isFriend,
-                isRequested = false
+                relationStatus = friendRelationStatus
             )
         }
 
