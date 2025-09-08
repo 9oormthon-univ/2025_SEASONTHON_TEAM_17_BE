@@ -319,25 +319,24 @@ interface FriendDocs {
             schema = Schema(implementation = RspTemplate::class),
             examples = [ExampleObject(
                 value = """
-                {
-                  "statusCode": 200,
-                  "message": "전체 회원 검색 성공",
-                  "data": {
-                    "data": [
-                      {
-                        "memberId": 123,
-                        "nickname": "newbie",
-                        "email": "newbie@example.com",
-                        "profileImageUrl": "https://cdn.maeum.shop/u123.png",
-                        "isFriend": false,
-                        "isRequested": true
-                      }
-                    ],
-                    "nextCursor": 456,
-                    "hasNext": true
+            {
+              "statusCode": 200,
+              "message": "전체 회원 검색 성공",
+              "data": {
+                "data": [
+                  {
+                    "memberId": 123,
+                    "nickname": "newbie",
+                    "email": "newbie@example.com",
+                    "profileImageUrl": "https://cdn.maeum.shop/u123.png",
+                    "relationStatus": "REQUESTED_BY_ME"
                   }
-                }
-                """
+                ],
+                "nextCursor": 456,
+                "hasNext": true
+              }
+            }
+            """
             )]
         )]
     )
