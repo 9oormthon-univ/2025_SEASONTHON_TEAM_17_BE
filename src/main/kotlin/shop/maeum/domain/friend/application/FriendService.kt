@@ -287,13 +287,23 @@ class FriendService(
         val nextCursor = if (hasNext) sliced.last().id else null
 
         val results = sliced.map {
+            val isFriend = friendRepository.existsByFromMemberIdAndToMemberIdAndFriendStatus(
+                fromMemberId = me.id,
+                toMemberId = it.id!!,
+                friendStatus = FriendStatus.ACCEPTED
+            ) || friendRepository.existsByFromMemberIdAndToMemberIdAndFriendStatus(
+                fromMemberId = it.id,
+                toMemberId = me.id,
+                friendStatus = FriendStatus.ACCEPTED
+            )
+
             FriendSearchResDto(
                 memberId = it.id!!,
                 email = it.email,
                 nickname = it.nickname,
                 profileImageUrl = it.profilePath ?: "",
-                isFriend = false,     // 친구 아님
-                isRequested = false   // 친구 요청 여부 미확인
+                isFriend = isFriend,
+                isRequested = false
             )
         }
 

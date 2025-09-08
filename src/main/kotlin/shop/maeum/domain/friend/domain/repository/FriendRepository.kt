@@ -119,5 +119,9 @@ interface FriendRepository : JpaRepository<Friend, Long> {
         @Param("cursor") cursor: Long?,
         pageable: Pageable
     ): List<Friend>
+
+    fun existsByFromMemberIdAndToMemberIdAndFriendStatus(
+        fromMemberId: String, toMemberId: String, friendStatus: FriendStatus
+    ): Boolean
 }
 

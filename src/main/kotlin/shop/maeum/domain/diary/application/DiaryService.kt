@@ -25,6 +25,7 @@ import shop.maeum.global.dto.CursorPageResDto
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
 
 @Service
 @Transactional(readOnly = true)
@@ -211,7 +212,14 @@ class DiaryService(
 
         val diaries = diaryRepository.findAllByMemberIdAndCreatedAtBetween(member.id!!, start, end)
 
-        return diaries.map { it.createdAt!!.dayOfMonth }.distinct()
+        val kstZone = ZoneId.of("Asia/Seoul")
+
+        return diaries.map { diary ->
+            diary.createdAt!!
+                .atZone(ZoneId.of("UTC"))
+                .withZoneSameInstant(kstZone)
+                .dayOfMonth
+        }.distinct()
     }
 
     fun getDiaryByDate(year: Int, month: Int, day: Int): DiaryDetailResDto {
@@ -235,7 +243,11 @@ class DiaryService(
         val start = today.atStartOfDay()
         val end = today.atTime(LocalTime.MAX)
 
+        log.info("Checking diary for memberId=${member.id}, between $start and $end")
+
         val diary = diaryRepository.findFirstByMemberIdAndCreatedAtBetween(member.id!!, start, end)
+
+        log.info("Diary found? ${diary != null}, createdAt=${diary?.createdAt}")
 
         return if (diary != null) {
             DiaryTodayResDto(
