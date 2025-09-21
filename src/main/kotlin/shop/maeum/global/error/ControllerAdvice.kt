@@ -62,4 +62,13 @@ class ControllerAdvice {
         log.error("Validation error for field {}: {}", fieldError.field, fieldError.defaultMessage)
         return ResponseEntity(errorResponse, HttpStatus.BAD_REQUEST)
     }
+
+    @ExceptionHandler(Exception::class)
+    fun handBaseException(e: Exception): ResponseEntity<ErrorResponse> {
+        val errorResponse = ErrorResponse(
+            HttpStatus.INTERNAL_SERVER_ERROR.value(),
+            e.message ?: "서버에서 발생한 오류 입니다."
+        )
+        return ResponseEntity(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR)
+    }
 }

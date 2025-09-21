@@ -7,7 +7,7 @@ interface JwtDetails {
     var clientSecret: String
     var expiration: Int
 
-    fun getExpirationInMillis(current: Long): Long = current + expiration * 1000L * 60 * 60 * 24
+    fun getExpirationInMillis(current: Long): Long = current + expiration * 1000L * 60 * 60
 
     fun getExpirationDate(current: Date): Date = Date(getExpirationInMillis(current.time))
 }
