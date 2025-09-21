@@ -1,7 +1,6 @@
 package shop.maeum.domain.jwt.config
 
 import org.springframework.beans.factory.annotation.Value
-import java.util.Date
 
 class RefreshJwtDetails : JwtDetails {
 
@@ -11,6 +10,6 @@ class RefreshJwtDetails : JwtDetails {
     @Value("\${jwt.client-secret}")
     override lateinit var clientSecret: String
 
-    @Value("\${jwt.refresh-token-expiration:36000}")
+    @Value("\${jwt.refresh-token-expiration:5}")
     override var expiration: Int = 0
 }

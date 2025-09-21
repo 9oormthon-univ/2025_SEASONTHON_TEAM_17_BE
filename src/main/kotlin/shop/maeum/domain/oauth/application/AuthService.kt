@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service
 import shop.maeum.domain.jwt.component.JwtComponent
 import shop.maeum.domain.member.application.MemberFacadeService
 import shop.maeum.domain.oauth.api.dto.JwtLoginDto
+import shop.maeum.domain.oauth.api.dto.response.OAuthLoginResDto
 import shop.maeum.domain.oauth.client.KakaoAuthApiClient
 import shop.maeum.domain.oauth.client.KakaoMemberInfoApiClient
 import shop.maeum.domain.oauth.client.dto.response.KakaoMemberInfoDto
@@ -38,6 +39,7 @@ class AuthService(
             redirectUri = redirectUri,
             code = code
         )
+        println(response)
 
         val memberInfo: KakaoMemberInfoDto = kakaoMemberInfoApiClient
             .getKakaoMemberInfo(response.getBearerToken())
@@ -54,6 +56,20 @@ class AuthService(
             tokenPair = tokenPair,
             status = loginInfo.status,
             message = loginInfo.message
+        )
+    }
+
+    fun reissueToken(refreshToken: String): OAuthLoginResDto {
+        jwtComponent.isRefreshToken(refreshToken)
+        val claims = jwtComponent.verify(refreshToken)
+        val tokenPair = jwtComponent.createTokenPair(
+            claims.id,
+            claims.email,
+            claims.roles[0]
+        )
+        return OAuthLoginResDto(
+            accessToken = tokenPair.accessToken,
+            refreshToken = tokenPair.refreshToken
         )
     }
 

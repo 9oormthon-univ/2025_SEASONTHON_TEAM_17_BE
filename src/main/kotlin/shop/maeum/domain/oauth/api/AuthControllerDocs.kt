@@ -4,10 +4,13 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.ExampleObject
 import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.parameters.RequestBody
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.HttpServletResponse
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
+import shop.maeum.domain.oauth.api.dto.request.ReissueRequestDto
 import shop.maeum.domain.oauth.api.dto.response.OAuthLoginResDto
 import shop.maeum.global.template.RspTemplate
 
@@ -73,4 +76,51 @@ interface AuthControllerDocs {
         )
         code: String
     ): RspTemplate<OAuthLoginResDto>
+
+    @Operation(
+        summary = "토큰 재발급 요청",
+        description = "refresh token을 이용해 access token과 refresh token을 재발급 받습니다. access token으로 요청할 경우, " +
+                "\"유효하지 않은 리프레시 토큰입니다\" 메시지와 401 상태코드를 응답합니다."
+    )
+    @ApiResponse(
+        responseCode = "201",
+        description = "토큰 재발급 성공",
+        content = [Content(
+            mediaType = "application/json",
+            schema = Schema(implementation = RspTemplate::class),
+            examples = [ExampleObject(
+                name = "토큰 재발급 성공 응답 예시",
+                value = """
+            {
+              "statusCode": 201,
+              "message": "토큰 재발급 성공",
+              "data": {
+                "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "refreshToken": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4..."
+              }
+            }
+            """
+            )]
+        )]
+    )
+    @PostMapping("/reissue")
+    fun reissueToken(
+        @RequestBody(
+            required = true,
+            description = "토큰 갱신 요청 api",
+            content = [Content(
+                mediaType = "application/json",
+                schema = Schema(implementation = ReissueRequestDto::class),
+                examples = [ExampleObject(
+                    value = """
+                    {
+                        "refreshToken": "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4..."
+                    }
+                    """
+                )]
+            )]
+        )
+        request: ReissueRequestDto
+    ): RspTemplate<OAuthLoginResDto>
+
 }

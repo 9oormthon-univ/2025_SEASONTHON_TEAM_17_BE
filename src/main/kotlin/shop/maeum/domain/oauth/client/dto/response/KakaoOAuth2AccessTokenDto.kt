@@ -7,9 +7,9 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 data class KakaoOAuth2AccessTokenDto(
     val tokenType: String,
     val accessToken: String,
-    val expireIn: Int,
+    val expiresIn: Int,
     val refreshToken: String,
-    val refreshTokenExpireIn: Int,
+    val refreshTokenExpiresIn: Int,
 ) {
     fun getBearerToken(): String = "Bearer $accessToken"
 }

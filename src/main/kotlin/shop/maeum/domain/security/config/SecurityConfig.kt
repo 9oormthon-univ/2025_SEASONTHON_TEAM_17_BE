@@ -12,6 +12,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 import shop.maeum.domain.security.filter.JwtAuthenticationTokenFilter
+import shop.maeum.domain.security.handler.GlobalAuthEntryPoint
+import shop.maeum.domain.security.handler.JwtAuthenticationErrorHandler
+import shop.maeum.domain.security.handler.JwtLogoutHandler
+import shop.maeum.domain.security.handler.JwtLogoutSuccessHandler
 
 @Configuration
 @EnableWebSecurity
@@ -19,12 +23,17 @@ class SecurityConfig(
     private val jwtAuthenticationTokenFilter: JwtAuthenticationTokenFilter,
     private val corsConfig: CorsConfig,
     @Value("\${spring.security.cors.allowed-paths}")
-    private val whiteList : Array<String>
+    private val whiteList : Array<String>,
+    private val jwtAuthEntryPoint: GlobalAuthEntryPoint,
+    private val jwtAuthenticationErrorHandler: JwtAuthenticationErrorHandler,
+    private val logoutHandler: JwtLogoutHandler,
+    private val jwtLogoutSuccessHandler: JwtLogoutSuccessHandler,
+    @Value("\${spring.security.logout.url}")
+    private val logoutUrl: String
 ) {
     @Bean
     fun filterChain(http: HttpSecurity
     ): SecurityFilterChain {
-
 
         http
             .cors {
@@ -43,9 +52,15 @@ class SecurityConfig(
                     .anyRequest()
                     .authenticated()
             }.addFilterBefore(jwtAuthenticationTokenFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .addFilterBefore( jwtAuthenticationErrorHandler, JwtAuthenticationTokenFilter::class.java)
             .exceptionHandling {
-                // TODO: AuthAccessDeniedHandler, AuthEntryPoint 추가 필요
-            }.httpBasic {
+                it.authenticationEntryPoint(jwtAuthEntryPoint)
+            }.logout { logout ->
+                logout.logoutUrl(logoutUrl)
+                .addLogoutHandler(logoutHandler)
+                .logoutSuccessHandler(jwtLogoutSuccessHandler)
+            }
+            .httpBasic {
                 it.disable()
             }.anonymous {
                 it.disable()
